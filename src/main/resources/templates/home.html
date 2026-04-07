@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home</title>
+  <link rel="stylesheet" th:href="@{/css/styles.css}" />
+</head>
+<body>
+  <div th:replace="fragments/header :: header"></div>
+  <section class="hero">
+    <div class="left">
+      <h1 th:text="${message}">Welcome</h1>
+      <p class="lead">This is the home page — pick a page from the navigation to explore.</p>
+      <div class="cta">
+        <a class="btn" th:href="@{/about}">Learn More</a>
+        <a class="muted-link" th:href="@{/contact}">Contact</a>
+      </div>
+      <div style="margin-top:20px;color:var(--muted)">
+        <span th:if="${name}">Personalized for <strong th:text="${name}">User</strong></span>
+        <span th:unless="${name}">No name provided — try <a class="muted-link" th:href="@{/home?name=You}">?name=You</a></span>
+      </div>
+    </div>
+    <aside class="card">
+      <div style="display:flex;gap:12px;align-items:center">
+        <div class="avatar" th:text="${name != null ? name.substring(0,1).toUpperCase() : 'H'}">H</div>
+        <div>
+          <div class="name" th:text="${name != null ? name : 'Hello Visitor'}">Hello Visitor</div>
+          <div class="small">Demo landing • Built with Thymeleaf</div>
+        </div>
+      </div>
+      <div style="margin-top:14px;font-size:0.95rem;color:var(--muted)">
+       <h3>Database Users:</h3>
+    <ul>
+        <li th:each="user : ${allUsers}">
+            <span th:text="${user.name}">Name</span> - 
+            <span th:text="${user.email}" style="color:var(--muted)">Email</span>
+        </li>
+    </ul>
+      </div>
+    </aside>
+  </section>
+</body>
+</html>

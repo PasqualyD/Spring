@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About</title>
+  <link rel="stylesheet" th:href="@{/css/styles.css}" />
+</head>
+<body>
+  <div th:replace="fragments/header :: header"></div>
+  <main style="max-width:900px;margin:100px auto 60px;padding:24px;color:var(--muted);background:transparent;">
+    <h1 th:text="${message}">About</h1>
+    <p>This is a small demo application to show Thymeleaf templates, fragments and styling.</p>
+    <p>Extend this page with project details, team info, or documentation links.</p>
+    <p><a th:href="@{/}">Back to Home</a></p>
+  </main>
+</body>
+</html>
