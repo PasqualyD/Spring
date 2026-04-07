@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +8,8 @@
 </head>
 <body>
   <div th:replace="fragments/header :: header"></div>
-  <section class="hero">
+
+  <section class="hero" sec:authorize="isAnonymous()">
     <div class="left">
       <h1 th:text="${message}">Welcome</h1>
       <p class="lead">This is the home page — pick a page from the navigation to explore.</p>
@@ -30,15 +31,44 @@
         </div>
       </div>
       <div style="margin-top:14px;font-size:0.95rem;color:var(--muted)">
-       <h3>Database Users:</h3>
-    <ul>
-        <li th:each="user : ${allUsers}">
+        <h3>Database Users:</h3>
+        <ul>
+          <li th:each="user : ${allUsers}">
             <span th:text="${user.name}">Name</span> - 
             <span th:text="${user.email}" style="color:var(--muted)">Email</span>
-        </li>
-    </ul>
+          </li>
+        </ul>
       </div>
     </aside>
+  </section>
+
+  <section class="hero dashboard" sec:authorize="isAuthenticated()">
+    <div class="dashboard-header">
+      <h1>Welcome back, <span sec:authentication="name">User</span>!</h1>
+      <p class="lead">Your dashboard gives you access to personalized tools, reports, and quick actions.</p>
+    </div>
+    <div class="dashboard-grid">
+      <div class="tool-card">
+        <h2>Quick Actions</h2>
+        <p>Jump into your latest projects, create new resources, and manage saved settings.</p>
+        <a class="btn" th:href="@{/about}">Open Tools</a>
+      </div>
+      <div class="tool-card">
+        <h2>Account Overview</h2>
+        <p>View your profile, update your password, and review access details.</p>
+        <a class="muted-link" th:href="@{/contact}">View Profile</a>
+      </div>
+      <div class="tool-card">
+        <h2>Analytics</h2>
+        <p>See activity metrics and user trends for your dashboard experience.</p>
+        <a class="muted-link" th:href="@{/about}">View Analytics</a>
+      </div>
+      <div class="tool-card">
+        <h2>Support</h2>
+        <p>Access help documents or contact support for advanced setup.</p>
+        <a class="muted-link" th:href="@{/contact}">Get Support</a>
+      </div>
+    </div>
   </section>
 </body>
 </html>

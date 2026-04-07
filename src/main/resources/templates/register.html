@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login</title>
+  <title>Register</title>
   <link rel="stylesheet" th:href="@{/css/styles.css}" />
 </head>
 <body>
   <div th:replace="fragments/header :: header"></div>
   <main style="max-width:400px;margin:100px auto 60px;padding:24px;">
-    <h1 th:text="${message}">Login</h1>
-    <form th:action="@{/login}" method="post" style="display:flex;flex-direction:column;gap:16px;margin-top:24px;">
+    <h1 th:text="${message}">Register</h1>
+    <form th:action="@{/register}" method="post" style="display:flex;flex-direction:column;gap:16px;margin-top:24px;">
       <div>
         <label style="display:block;margin-bottom:6px;color:white;">Email</label>
         <input name="email" type="email" placeholder="you@example.com" required style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--muted);background:rgba(255,255,255,0.08);color:white;">
@@ -19,10 +19,9 @@
         <label style="display:block;margin-bottom:6px;color:white;">Password</label>
         <input name="password" type="password" placeholder="••••••••" required style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--muted);background:rgba(255,255,255,0.08);color:white;">
       </div>
-      <button type="submit" class="btn" style="width:100%;cursor:pointer;">Sign In</button>
+      <button type="submit" class="btn" style="width:100%;cursor:pointer;">Register</button>
     </form>
-    <p style="text-align:center;color:var(--muted);margin-top:16px;">Don't have an account? <a th:href="@{/register}">Register here</a></p>
-    <p style="text-align:center;color:var(--muted);margin-top:8px;"><a th:href="@{/}">Back to Home</a></p>
+    <p style="text-align:center;color:var(--muted);margin-top:16px;">Already have an account? <a th:href="@{/login}">Login here</a></p>
   </main>
 </body>
 </html>

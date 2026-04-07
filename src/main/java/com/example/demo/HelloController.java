@@ -1,5 +1,10 @@
 package com.example.demo;
 
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,11 +18,15 @@ public class HelloController {
 
 // 1. The field is declared as final
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
 
     // 2. The Constructor: This is what fixes your error.
     // Spring sees this and automatically provides the UserRepository.
-    public HelloController(UserRepository userRepository) {
+    public HelloController(UserRepository userRepository, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.authenticationManager = authenticationManager;
     }
 @GetMapping({"/", "/home"})
     public String home(@RequestParam(name = "name", required = false) String name, Model model) {
@@ -54,13 +63,26 @@ public class HelloController {
         return "login";
     }
 
-    @PostMapping("/login")
-    public String register(@RequestParam("email") String email,
-                           @RequestParam("password") String password) {
+    @GetMapping("/register")
+    public String register(Model model) {
+        model.addAttribute("message", "Register");
+        return "register";
+    }
+
+    @PostMapping("/register")
+    public String registerUser(@RequestParam String email, @RequestParam String password) {
         User newUser = new User();
         newUser.setEmail(email);
-        newUser.setPassword(password);
+        newUser.setName(email.split("@")[0]);
+        newUser.setPassword(passwordEncoder.encode(password));
         userRepository.save(newUser);
-        return "redirect:/";
+
+        Authentication authentication = authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(email, password)
+        );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        return "redirect:/home";
     }
+
 }
