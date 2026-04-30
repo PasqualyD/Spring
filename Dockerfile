@@ -1,20 +1,13 @@
-# Step 1: Use a Java 21 runtime (matching your current setup)
-FROM eclipse-temurin:21-jdk-jammy
-
-# Step 2: Set the working directory inside the container
+FROM eclipse-temurin:21-jdk-jammy AS builder
 WORKDIR /app
-
-# Step 3: Copy the maven wrapper and pom.xml first (optimizes build speed)
 COPY .mvn/ .mvn
 COPY mvnw pom.xml ./
-RUN ./mvnw dependency:go-offline
-
-# Step 4: Copy your source code and build the app
+RUN chmod +x mvnw && ./mvnw dependency:go-offline -q
 COPY src ./src
-RUN ./mvnw clean package -DskipTests
+RUN ./mvnw clean package -DskipTests -q
 
-# Step 5: Run the generated JAR file
+FROM eclipse-temurin:21-jre-jammy
+WORKDIR /app
+COPY --from=builder /app/target/*.jar app.jar
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "target/diyannimoney-0.0.1-SNAPSHOT.jar"]
-
-#change
+ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "app.jar"]
