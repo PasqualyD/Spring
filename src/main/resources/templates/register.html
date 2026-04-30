@@ -3,27 +3,141 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DiyanniMoney - Register</title>
+  <title>DiyanniMoney — Create Account</title>
   <link rel="stylesheet" th:href="@{/css/styles.css}" />
 </head>
-<body>
-  <div th:replace="fragments/header :: header"></div>
-  <main style="max-width:400px;margin:100px auto 60px;padding:24px;">
-    <h1 th:text="${message}">Register</h1>
-    <form th:action="@{/register}" th:object="${registrationForm}" method="post" style="display:flex;flex-direction:column;gap:16px;margin-top:24px;">
-      <div>
-        <label style="display:block;margin-bottom:6px;color:white;">Email</label>
-        <input th:field="*{email}" type="email" placeholder="you@example.com" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--muted);background:rgba(255,255,255,0.08);color:white;">
-        <div th:if="${#fields.hasErrors('email')}" style="color:#ff6b6b;margin-top:6px;" th:errors="*{email}"></div>
+<body class="auth-page">
+
+  <div class="auth-card">
+
+    <div class="auth-logo">
+      <div class="logo-mark" style="width:48px;height:48px;font-size:1.1rem;">DM</div>
+    </div>
+
+    <h1 class="auth-title">Create your account</h1>
+    <p class="auth-sub">Start trading with DiyanniMoney today</p>
+
+    <form th:action="@{/register}" th:object="${registrationForm}" method="post">
+
+      <div class="field">
+        <label for="reg-email">Username / Email</label>
+        <div class="input-wrap">
+          <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/>
+          </svg>
+          <input id="reg-email" th:field="*{email}" type="email" placeholder="you@example.com" autocomplete="email" />
+        </div>
+        <div th:if="${#fields.hasErrors('email')}" class="field-error" th:errors="*{email}"></div>
       </div>
-      <div>
-        <label style="display:block;margin-bottom:6px;color:white;">Password</label>
-        <input th:field="*{password}" type="password" placeholder="••••••••" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--muted);background:rgba(255,255,255,0.08);color:white;">
-        <div th:if="${#fields.hasErrors('password')}" style="color:#ff6b6b;margin-top:6px;" th:errors="*{password}"></div>
+
+      <div class="field">
+        <label for="reg-password">Password</label>
+        <div class="input-wrap">
+          <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/>
+          </svg>
+          <input id="reg-password" th:field="*{password}" type="password" placeholder="••••••••" autocomplete="new-password" oninput="checkStrength(this.value)" />
+          <button type="button" class="eye-btn" onclick="toggleRegPwd()">
+            <svg id="regEyeIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+            </svg>
+          </button>
+        </div>
+        <!-- Strength meter -->
+        <div class="strength-wrap">
+          <div class="strength-bars">
+            <div class="strength-bar" id="sb1"></div>
+            <div class="strength-bar" id="sb2"></div>
+            <div class="strength-bar" id="sb3"></div>
+            <div class="strength-bar" id="sb4"></div>
+          </div>
+          <div class="strength-label" id="strengthLabel">Enter a password</div>
+        </div>
+        <div th:if="${#fields.hasErrors('password')}" class="field-error" th:errors="*{password}"></div>
       </div>
-      <button type="submit" class="btn" style="width:100%;cursor:pointer;">Register</button>
+
+      <div class="field">
+        <label for="confirm-password">Confirm Password</label>
+        <div class="input-wrap">
+          <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/>
+          </svg>
+          <input id="confirm-password" type="password" placeholder="••••••••" autocomplete="new-password" oninput="checkMatch()" />
+        </div>
+        <div class="field-error" id="matchError" style="display:none;">Passwords do not match</div>
+      </div>
+
+      <label class="check-row">
+        <input type="checkbox" name="terms" required />
+        I agree to the Terms of Service and Privacy Policy
+      </label>
+
+      <button type="submit" class="btn btn-primary btn-full" id="submitBtn">Create Account</button>
+
     </form>
-    <p style="text-align:center;color:var(--muted);margin-top:16px;">Already have an account? <a th:href="@{/login}">Login here</a></p>
-  </main>
+
+    <p style="text-align:center;margin-top:20px;font-size:0.875rem;color:var(--text-secondary);">
+      Already have an account?
+      <a th:href="@{/login}" style="color:var(--accent-purple);font-weight:600;">Sign in</a>
+    </p>
+
+  </div>
+
+  <script>
+    function checkStrength(val) {
+      var bars = [
+        document.getElementById('sb1'),
+        document.getElementById('sb2'),
+        document.getElementById('sb3'),
+        document.getElementById('sb4')
+      ];
+      var label = document.getElementById('strengthLabel');
+      bars.forEach(function(b){ b.className = 'strength-bar'; });
+      if (!val) { label.textContent = 'Enter a password'; return; }
+      var score = 0;
+      if (val.length >= 8) score++;
+      if (/[A-Z]/.test(val)) score++;
+      if (/[0-9]/.test(val)) score++;
+      if (/[^A-Za-z0-9]/.test(val)) score++;
+      var levels = ['weak','fair','good','strong'];
+      var names  = ['Weak','Fair','Good','Strong'];
+      for (var i = 0; i < score; i++) { bars[i].classList.add(levels[score - 1]); }
+      label.textContent = names[score - 1] || 'Weak';
+    }
+
+    function checkMatch() {
+      var p1 = document.getElementById('reg-password').value;
+      var p2 = document.getElementById('confirm-password').value;
+      var err = document.getElementById('matchError');
+      var inp = document.getElementById('confirm-password');
+      if (p2 && p1 !== p2) {
+        err.style.display = 'block';
+        inp.classList.add('error');
+      } else {
+        err.style.display = 'none';
+        inp.classList.remove('error');
+      }
+    }
+
+    function toggleRegPwd() {
+      var inp = document.getElementById('reg-password');
+      var icon = document.getElementById('regEyeIcon');
+      if (inp.type === 'password') {
+        inp.type = 'text';
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"/>';
+      } else {
+        inp.type = 'password';
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>';
+      }
+    }
+
+    document.querySelector('form').addEventListener('submit', function(e) {
+      var p1 = document.getElementById('reg-password').value;
+      var p2 = document.getElementById('confirm-password').value;
+      if (p1 !== p2) { e.preventDefault(); checkMatch(); }
+    });
+  </script>
+
 </body>
 </html>

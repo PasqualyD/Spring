@@ -1,18 +1,119 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DiyanniMoney - About</title>
+  <title>DiyanniMoney — About</title>
   <link rel="stylesheet" th:href="@{/css/styles.css}" />
 </head>
 <body>
-  <div th:replace="fragments/header :: header"></div>
-  <main style="max-width:900px;margin:100px auto 60px;padding:24px;color:var(--muted);background:transparent;">
-    <h1 th:text="${message}">About</h1>
-    <p>This is a small demo application to show Thymeleaf templates, fragments and styling.</p>
-    <p>Extend this page with project details, team info, or documentation links.</p>
-    <p><a th:href="@{/}">Back to Home</a></p>
+
+  <div th:replace="~{fragments/header :: header}"></div>
+
+  <!-- Authenticated: sidebar present -->
+  <main sec:authorize="isAuthenticated()" class="page-content" style="max-width:960px;">
+    <div class="about-hero" style="padding-top:0;">
+      <h1>About DiyanniMoney</h1>
+      <p>Building the next generation of intelligent trading infrastructure.</p>
+    </div>
+
+    <div class="mission-grid">
+      <div class="card feature-card">
+        <div class="feature-icon purple">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>
+          </svg>
+        </div>
+        <div class="feature-title">Our Mission</div>
+        <div class="feature-desc">Democratize access to professional-grade trading tools. We believe every trader, regardless of portfolio size, deserves fast, reliable, and intelligent execution infrastructure.</div>
+      </div>
+      <div class="card feature-card">
+        <div class="feature-icon blue">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0 0 21 18V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v12a2.25 2.25 0 0 0 2.25 2.25Z"/>
+          </svg>
+        </div>
+        <div class="feature-title">Our Technology</div>
+        <div class="feature-desc">Built on a reactive Spring Boot backbone with Kafka-powered event streaming, Redis-backed deduplication, and PostgreSQL for durable trade persistence. Designed to scale.</div>
+      </div>
+      <div class="card feature-card">
+        <div class="feature-icon green">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z"/>
+          </svg>
+        </div>
+        <div class="feature-title">Our Team</div>
+        <div class="feature-desc">Founded by fintech engineers with experience at leading trading firms. Passionate about performance, reliability, and creating tools that traders can trust.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Technology Stack</div>
+      <div class="tech-pills" style="margin-top:12px;">
+        <span class="tech-pill">☕ Spring Boot 3</span>
+        <span class="tech-pill">🐘 PostgreSQL</span>
+        <span class="tech-pill">⚡ Redis</span>
+        <span class="tech-pill">📨 Apache Kafka</span>
+        <span class="tech-pill">🔐 Spring Security</span>
+        <span class="tech-pill">🌿 Thymeleaf</span>
+        <span class="tech-pill">🐳 Docker</span>
+        <span class="tech-pill">☁️ Cloud Native</span>
+      </div>
+    </div>
   </main>
+
+  <!-- Anonymous: full-width centered -->
+  <main sec:authorize="isAnonymous()" class="page-content-full" style="max-width:960px;margin-left:auto;margin-right:auto;">
+    <div class="about-hero">
+      <h1>About DiyanniMoney</h1>
+      <p>Building the next generation of intelligent trading infrastructure.</p>
+    </div>
+
+    <div class="mission-grid">
+      <div class="card feature-card">
+        <div class="feature-icon purple">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>
+          </svg>
+        </div>
+        <div class="feature-title">Our Mission</div>
+        <div class="feature-desc">Democratize access to professional-grade trading tools. We believe every trader, regardless of portfolio size, deserves fast, reliable, and intelligent execution infrastructure.</div>
+      </div>
+      <div class="card feature-card">
+        <div class="feature-icon blue">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0 0 21 18V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v12a2.25 2.25 0 0 0 2.25 2.25Z"/>
+          </svg>
+        </div>
+        <div class="feature-title">Our Technology</div>
+        <div class="feature-desc">Built on a reactive Spring Boot backbone with Kafka-powered event streaming, Redis-backed deduplication, and PostgreSQL for durable trade persistence. Designed to scale.</div>
+      </div>
+      <div class="card feature-card">
+        <div class="feature-icon green">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z"/>
+          </svg>
+        </div>
+        <div class="feature-title">Our Team</div>
+        <div class="feature-desc">Founded by fintech engineers with experience at leading trading firms. Passionate about performance, reliability, and creating tools that traders can trust.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Technology Stack</div>
+      <div class="tech-pills" style="margin-top:12px;">
+        <span class="tech-pill">☕ Spring Boot 3</span>
+        <span class="tech-pill">🐘 PostgreSQL</span>
+        <span class="tech-pill">⚡ Redis</span>
+        <span class="tech-pill">📨 Apache Kafka</span>
+        <span class="tech-pill">🔐 Spring Security</span>
+        <span class="tech-pill">🌿 Thymeleaf</span>
+        <span class="tech-pill">🐳 Docker</span>
+        <span class="tech-pill">☁️ Cloud Native</span>
+      </div>
+    </div>
+  </main>
+
 </body>
 </html>

@@ -1,66 +1,178 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DiyanniMoney - Dashboard</title>
+  <title>DiyanniMoney — Dashboard</title>
   <link rel="stylesheet" th:href="@{/css/styles.css}" />
 </head>
 <body>
-  <div th:replace="fragments/header :: header"></div>
-  <main class="dashboard" sec:authorize="isAuthenticated()">
-    <div class="dashboard-header">
+
+  <div th:replace="~{fragments/header :: header}"></div>
+
+  <main class="page-content" sec:authorize="isAuthenticated()">
+
+    <!-- Welcome -->
+    <div class="welcome-banner">
       <h1>Dashboard</h1>
-      <p class="lead">Manage your account, check activity, and use your member tools.</p>
+      <p>Manage your portfolio, monitor positions, and review trade history.</p>
     </div>
-    <div class="dashboard-grid">
-      <div class="tool-card">
-        <h2>Portfolio Value</h2>
-        <p>Total value of open positions based on current market prices.</p>
-        <p class="metric" th:text="${#numbers.formatDecimal(portfolioValue, 1, 'COMMA', 2, 'POINT')} != null ? '$' + ${#numbers.formatDecimal(portfolioValue, 1, 'COMMA', 2, 'POINT')} : '$0.00'">$0.00</p>
-        <p class="muted">P&L: <span th:text="${portfolioPnl >= 0} ? '+$' + ${#numbers.formatDecimal(portfolioPnl, 1, 'COMMA', 2, 'POINT')} : '-$' + ${#numbers.formatDecimal(-portfolioPnl, 1, 'COMMA', 2, 'POINT')}">+$0.00</span></p>
-        <a class="btn" th:href="@{/dashboard/trades}">My Trades</a>
+
+    <!-- 2-column grid -->
+    <div class="dash-grid">
+
+      <!-- ── LEFT COLUMN ── -->
+      <div class="dash-main">
+
+        <!-- Portfolio performance chart -->
+        <div class="card chart-card">
+          <h3>Portfolio Performance</h3>
+          <div class="chart-sub">All time — unrealized P&amp;L</div>
+          <div class="chart-area">
+            <svg viewBox="0 0 800 160" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#00d4aa" stop-opacity="0.18"/>
+                  <stop offset="100%" stop-color="#00d4aa" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <!-- Grid lines -->
+              <line x1="0" y1="40"  x2="800" y2="40"  stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+              <line x1="0" y1="80"  x2="800" y2="80"  stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+              <line x1="0" y1="120" x2="800" y2="120" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+              <!-- Fill area -->
+              <path d="M0,120 L100,120 L200,120 L300,120 L400,120 L500,120 L600,120 L700,120 L800,120 L800,140 L0,140 Z"
+                    fill="url(#chartFill)"/>
+              <!-- Flat line (no trades yet) -->
+              <path d="M0,120 L800,120"
+                    fill="none" stroke="#00d4aa" stroke-width="2" stroke-linecap="round"/>
+              <!-- Dot at end -->
+              <circle cx="800" cy="120" r="4" fill="#00d4aa"/>
+            </svg>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:12px;font-size:0.75rem;color:var(--text-muted);">
+            <span>No trade history yet</span>
+            <span class="mono" style="color:var(--accent-green);">$0.00</span>
+          </div>
+        </div>
+
+        <!-- Recent activity -->
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <h3 style="font-size:1rem;font-weight:600;">Recent Activity</h3>
+            <a th:href="@{/dashboard/trades}" class="btn btn-outline btn-sm">View All</a>
+          </div>
+          <div class="empty-state">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"/>
+            </svg>
+            <p>No trades yet.<br>Execute your first trade to get started.</p>
+          </div>
+
+          <!-- Open positions table (shown when positions exist) -->
+          <div th:if="${positions != null and !#lists.isEmpty(positions)}">
+            <table>
+              <thead>
+                <tr>
+                  <th>Symbol</th>
+                  <th>Quantity</th>
+                  <th>Last Price</th>
+                  <th>Position Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr th:each="position : ${positions}">
+                  <td th:text="${position.symbol}">AAPL</td>
+                  <td th:text="${position.quantity}">100</td>
+                  <td th:text="${'$' + #numbers.formatDecimal(position.currentPrice, 1, 'COMMA', 2, 'POINT')}">$150.00</td>
+                  <td th:text="${'$' + #numbers.formatDecimal(position.value, 1, 'COMMA', 2, 'POINT')}">$15,000.00</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
-      <div class="tool-card">
-        <h2>Profile</h2>
-        <p>Your email is <strong sec:authentication="name">user@example.com</strong>.</p>
-        <a class="btn" th:href="@{/contact}">Edit Profile</a>
-      </div>
-      <div class="tool-card">
-        <h2>Notifications</h2>
-        <p>Stay up to date with your latest account activity and system messages.</p>
-        <a class="muted-link" th:href="@{/about}">View Notifications</a>
-      </div>
-      <div class="tool-card">
-        <h2>Support</h2>
-        <p>Need help? Reach out or browse documentation for answers fast.</p>
-        <a class="muted-link" th:href="@{/contact}">Contact Support</a>
+
+      <!-- ── RIGHT COLUMN ── -->
+      <div class="dash-side">
+
+        <!-- Account summary -->
+        <div class="card" style="text-align:center;">
+          <div style="display:flex;justify-content:center;">
+            <div class="account-avatar" id="dashAvatar">U</div>
+          </div>
+          <div class="account-name" sec:authentication="name">User</div>
+          <div class="account-meta">Member since April 2025</div>
+          <div style="margin-top:8px;"><span class="role-badge">TRADER</span></div>
+          <a th:href="@{/contact}" class="btn btn-outline btn-sm" style="margin-top:16px;width:100%;">Edit Profile</a>
+        </div>
+
+        <!-- Quick stats -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:12px;">Quick Stats</div>
+          <div class="qs-row">
+            <span class="qs-label">Win Rate</span>
+            <span class="qs-val">0%</span>
+          </div>
+          <div class="qs-row">
+            <span class="qs-label">Total Volume</span>
+            <span class="qs-val">$0.00</span>
+          </div>
+          <div class="qs-row">
+            <span class="qs-label">Best Trade</span>
+            <span class="qs-val" style="color:var(--text-muted);">N/A</span>
+          </div>
+          <div class="qs-row">
+            <span class="qs-label">Portfolio Value</span>
+            <span class="qs-val green" th:text="${portfolioValue != null ? '$' + #numbers.formatDecimal(portfolioValue, 1, 'COMMA', 2, 'POINT') : '$0.00'}">$0.00</span>
+          </div>
+          <div class="qs-row">
+            <span class="qs-label">P&amp;L</span>
+            <span class="qs-val" th:classappend="${portfolioPnl != null and portfolioPnl >= 0} ? 'green' : 'red'"
+                  th:text="${portfolioPnl != null ? (portfolioPnl >= 0 ? '+$' : '-$') + #numbers.formatDecimal((portfolioPnl >= 0 ? portfolioPnl : -portfolioPnl), 1, 'COMMA', 2, 'POINT') : '$0.00'}">$0.00</span>
+          </div>
+        </div>
+
+        <!-- Market snapshot -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:12px;">Market Snapshot</div>
+          <div class="market-row">
+            <span class="market-symbol">AAPL</span>
+            <span class="market-price">$189.42</span>
+            <span class="market-change up">+2.3%</span>
+          </div>
+          <div class="market-row">
+            <span class="market-symbol">TSLA</span>
+            <span class="market-price">$248.10</span>
+            <span class="market-change dn">-1.1%</span>
+          </div>
+          <div class="market-row">
+            <span class="market-symbol">MSFT</span>
+            <span class="market-price">$415.80</span>
+            <span class="market-change up">+0.8%</span>
+          </div>
+          <div class="market-row">
+            <span class="market-symbol">NVDA</span>
+            <span class="market-price">$875.20</span>
+            <span class="market-change up">+4.2%</span>
+          </div>
+        </div>
+
       </div>
     </div>
-    <section class="dashboard-section" th:if="${positions != null}">
-      <div class="tool-card full-width">
-        <h2>Open Positions</h2>
-        <div th:if="${#lists.isEmpty(positions)}" style="color:var(--muted);padding:16px 0;">No open positions available yet.</div>
-        <table th:if="${!#lists.isEmpty(positions)}">
-          <thead>
-            <tr>
-              <th>Symbol</th>
-              <th>Quantity</th>
-              <th>Last Price</th>
-              <th>Position Value</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr th:each="position : ${positions}">
-              <td th:text="${position.symbol}">AAPL</td>
-              <td th:text="${position.quantity}">100</td>
-              <td th:text="${#numbers.formatDecimal(position.currentPrice, 1, 'COMMA', 2, 'POINT')}">$150.00</td>
-              <td th:text="${#numbers.formatDecimal(position.value, 1, 'COMMA', 2, 'POINT')}">$15,000.00</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
   </main>
+
+  <script>
+    (function(){
+      var nameEl = document.querySelector('[sec\\:authentication="name"]');
+      var avatarEl = document.getElementById('dashAvatar');
+      if (avatarEl && nameEl) {
+        avatarEl.textContent = nameEl.textContent.trim().charAt(0).toUpperCase();
+      }
+    })();
+  </script>
+
 </body>
 </html>

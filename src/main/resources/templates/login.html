@@ -3,27 +3,87 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DiyanniMoney - Login</title>
+  <title>DiyanniMoney — Sign In</title>
   <link rel="stylesheet" th:href="@{/css/styles.css}" />
 </head>
-<body>
-  <div th:replace="fragments/header :: header"></div>
-  <main style="max-width:400px;margin:100px auto 60px;padding:24px;">
-    <h1 th:text="${message}">Login</h1>
-    <div th:if="${loginError}" style="margin-bottom:16px;padding:12px;border-radius:12px;background:rgba(255,107,107,0.14);color:#ff6b6b;">Invalid credentials. Please try again.</div>
-    <form th:action="@{/login}" method="post" style="display:flex;flex-direction:column;gap:16px;margin-top:24px;">
-      <div>
-        <label style="display:block;margin-bottom:6px;color:white;">Email</label>
-        <input name="email" type="email" placeholder="you@example.com" required style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--muted);background:rgba(255,255,255,0.08);color:white;">
+<body class="auth-page">
+
+  <div class="auth-card">
+
+    <div class="auth-logo">
+      <div class="logo-mark" style="width:48px;height:48px;font-size:1.1rem;">DM</div>
+    </div>
+
+    <h1 class="auth-title">Welcome back</h1>
+    <p class="auth-sub">Sign in to your DiyanniMoney account</p>
+
+    <!-- Error message -->
+    <div th:if="${loginError}" class="auth-error">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+      </svg>
+      Invalid credentials. Please try again.
+    </div>
+
+    <form th:action="@{/login}" method="post">
+
+      <div class="field">
+        <label for="email">Email</label>
+        <div class="input-wrap">
+          <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"/>
+          </svg>
+          <input id="email" name="email" type="email" placeholder="you@example.com" required autocomplete="email" />
+        </div>
       </div>
-      <div>
-        <label style="display:block;margin-bottom:6px;color:white;">Password</label>
-        <input name="password" type="password" placeholder="••••••••" required style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--muted);background:rgba(255,255,255,0.08);color:white;">
+
+      <div class="field">
+        <label for="password">Password</label>
+        <div class="input-wrap">
+          <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/>
+          </svg>
+          <input id="password" name="password" type="password" placeholder="••••••••" required autocomplete="current-password" />
+          <button type="button" class="eye-btn" id="eyeBtn" onclick="togglePwd()">
+            <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+            </svg>
+          </button>
+        </div>
       </div>
-      <button type="submit" class="btn" style="width:100%;cursor:pointer;">Sign In</button>
+
+      <label class="check-row">
+        <input type="checkbox" name="remember-me" />
+        Remember me for 30 days
+      </label>
+
+      <button type="submit" class="btn btn-primary btn-full" style="margin-bottom:16px;">Sign In</button>
+
     </form>
-    <p style="text-align:center;color:var(--muted);margin-top:16px;">Don't have an account? <a th:href="@{/register}">Register here</a></p>
-    <p style="text-align:center;color:var(--muted);margin-top:8px;"><a th:href="@{/}">Back to Home</a></p>
-  </main>
+
+    <div class="divider">or</div>
+
+    <p style="text-align:center;margin-top:16px;font-size:0.875rem;color:var(--text-secondary);">
+      Don't have an account?
+      <a th:href="@{/register}" style="color:var(--accent-purple);font-weight:600;">Create an account</a>
+    </p>
+
+  </div>
+
+  <script>
+    function togglePwd() {
+      var inp = document.getElementById('password');
+      var icon = document.getElementById('eyeIcon');
+      if (inp.type === 'password') {
+        inp.type = 'text';
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"/>';
+      } else {
+        inp.type = 'password';
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>';
+      }
+    }
+  </script>
+
 </body>
 </html>

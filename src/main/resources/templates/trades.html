@@ -7,8 +7,8 @@
   <link rel="stylesheet" th:href="@{/css/styles.css}" />
 </head>
 <body>
-  <div th:replace="fragments/header :: header"></div>
-  <main class="dashboard" sec:authorize="isAuthenticated()">
+  <div th:replace="~{fragments/header :: header}"></div>
+  <main class="page-content" sec:authorize="isAuthenticated()">
     <div class="dashboard-header">
       <h1>My Trades</h1>
       <p class="lead">View every executed trade for your account.</p>
