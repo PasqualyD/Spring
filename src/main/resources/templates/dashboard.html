@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard</title>
+  <title>DiyanniMoney - Dashboard</title>
   <link rel="stylesheet" th:href="@{/css/styles.css}" />
 </head>
 <body>
@@ -15,6 +15,13 @@
     </div>
     <div class="dashboard-grid">
       <div class="tool-card">
+        <h2>Portfolio Value</h2>
+        <p>Total value of open positions based on current market prices.</p>
+        <p class="metric" th:text="${#numbers.formatDecimal(portfolioValue, 1, 'COMMA', 2, 'POINT')} != null ? '$' + ${#numbers.formatDecimal(portfolioValue, 1, 'COMMA', 2, 'POINT')} : '$0.00'">$0.00</p>
+        <p class="muted">P&L: <span th:text="${portfolioPnl >= 0} ? '+$' + ${#numbers.formatDecimal(portfolioPnl, 1, 'COMMA', 2, 'POINT')} : '-$' + ${#numbers.formatDecimal(-portfolioPnl, 1, 'COMMA', 2, 'POINT')}">+$0.00</span></p>
+        <a class="btn" th:href="@{/dashboard/trades}">My Trades</a>
+      </div>
+      <div class="tool-card">
         <h2>Profile</h2>
         <p>Your email is <strong sec:authentication="name">user@example.com</strong>.</p>
         <a class="btn" th:href="@{/contact}">Edit Profile</a>
@@ -25,16 +32,35 @@
         <a class="muted-link" th:href="@{/about}">View Notifications</a>
       </div>
       <div class="tool-card">
-        <h2>Member Tools</h2>
-        <p>Quick access to bookmarks, saved searches, and any premium features.</p>
-        <a class="muted-link" th:href="@{/about}">Open Tools</a>
-      </div>
-      <div class="tool-card">
         <h2>Support</h2>
         <p>Need help? Reach out or browse documentation for answers fast.</p>
         <a class="muted-link" th:href="@{/contact}">Contact Support</a>
       </div>
     </div>
+    <section class="dashboard-section" th:if="${positions != null}">
+      <div class="tool-card full-width">
+        <h2>Open Positions</h2>
+        <div th:if="${#lists.isEmpty(positions)}" style="color:var(--muted);padding:16px 0;">No open positions available yet.</div>
+        <table th:if="${!#lists.isEmpty(positions)}">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Quantity</th>
+              <th>Last Price</th>
+              <th>Position Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="position : ${positions}">
+              <td th:text="${position.symbol}">AAPL</td>
+              <td th:text="${position.quantity}">100</td>
+              <td th:text="${#numbers.formatDecimal(position.currentPrice, 1, 'COMMA', 2, 'POINT')}">$150.00</td>
+              <td th:text="${#numbers.formatDecimal(position.value, 1, 'COMMA', 2, 'POINT')}">$15,000.00</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
   </main>
 </body>
 </html>

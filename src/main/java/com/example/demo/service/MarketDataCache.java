@@ -2,6 +2,8 @@ package com.example.demo.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Optional;
 
@@ -9,6 +11,7 @@ import java.util.Optional;
  * Thread-safe market data cache using ConcurrentHashMap.
  * Provides atomic price updates and high-performance concurrent access.
  */
+@Component
 public class MarketDataCache {
     
     private static final Logger logger = LoggerFactory.getLogger(MarketDataCache.class);
@@ -25,6 +28,12 @@ public class MarketDataCache {
             this.price = price;
             this.lastUpdated = System.currentTimeMillis();
             this.updateCount = 1;
+        }
+        
+        public PriceData(double price, int updateCount) {
+            this.price = price;
+            this.lastUpdated = System.currentTimeMillis();
+            this.updateCount = updateCount;
         }
         
         public double getPrice() {
@@ -122,5 +131,56 @@ public class MarketDataCache {
      */
     public java.util.Set<String> getAllSymbols() {
         return priceCache.keySet();
+    }
+    
+    /**
+     * Insert or update a price regardless of whether it exists
+     */
+    public void upsertPrice(String symbol, double price) {
+        if (symbol == null) {
+            logger.warn("Cannot upsert price for null symbol");
+            return;
+        }
+        priceCache.put(symbol, new PriceData(price));
+        logger.debug("Upserted price for {}: {}", symbol, price);
+    }
+    
+    /**
+     * Remove a symbol from the cache
+     */
+    public Optional<PriceData> removeSymbol(String symbol) {
+        PriceData removed = priceCache.remove(symbol);
+        if (removed != null) {
+            logger.debug("Removed symbol {} from cache", symbol);
+        } else {
+            logger.debug("Symbol {} not found in cache, nothing to remove", symbol);
+        }
+        return Optional.ofNullable(removed);
+    }
+    
+    /**
+     * Update price using a calculation function
+     */
+    public boolean updatePriceByCalculation(String symbol, java.util.function.Function<Double, Double> calculator) {
+        if (symbol == null || calculator == null) {
+            logger.warn("Invalid parameters for updatePriceByCalculation: symbol={}, calculator={}", symbol, calculator);
+            return false;
+        }
+        
+        PriceData updated = priceCache.computeIfPresent(symbol, (key, existing) -> {
+            double newPrice = calculator.apply(existing.getPrice());
+            logger.debug("Updated {} using calculation: {} -> {}", key, existing.getPrice(), newPrice);
+            return new PriceData(newPrice, existing.getUpdateCount() + 1);
+        });
+        
+        return updated != null;
+    }
+    
+    /**
+     * Return a stats snapshot as a formatted string
+     */
+    public String getCacheStats() {
+        return String.format("Cache Stats: totalSymbols=%d, symbols=%s", 
+                           priceCache.size(), priceCache.keySet());
     }
 }

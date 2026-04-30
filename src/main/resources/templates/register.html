@@ -3,21 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Register</title>
+  <title>DiyanniMoney - Register</title>
   <link rel="stylesheet" th:href="@{/css/styles.css}" />
 </head>
 <body>
   <div th:replace="fragments/header :: header"></div>
   <main style="max-width:400px;margin:100px auto 60px;padding:24px;">
     <h1 th:text="${message}">Register</h1>
-    <form th:action="@{/register}" method="post" style="display:flex;flex-direction:column;gap:16px;margin-top:24px;">
+    <form th:action="@{/register}" th:object="${registrationForm}" method="post" style="display:flex;flex-direction:column;gap:16px;margin-top:24px;">
       <div>
         <label style="display:block;margin-bottom:6px;color:white;">Email</label>
-        <input name="email" type="email" placeholder="you@example.com" required style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--muted);background:rgba(255,255,255,0.08);color:white;">
+        <input th:field="*{email}" type="email" placeholder="you@example.com" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--muted);background:rgba(255,255,255,0.08);color:white;">
+        <div th:if="${#fields.hasErrors('email')}" style="color:#ff6b6b;margin-top:6px;" th:errors="*{email}"></div>
       </div>
       <div>
         <label style="display:block;margin-bottom:6px;color:white;">Password</label>
-        <input name="password" type="password" placeholder="••••••••" required style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--muted);background:rgba(255,255,255,0.08);color:white;">
+        <input th:field="*{password}" type="password" placeholder="••••••••" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--muted);background:rgba(255,255,255,0.08);color:white;">
+        <div th:if="${#fields.hasErrors('password')}" style="color:#ff6b6b;margin-top:6px;" th:errors="*{password}"></div>
       </div>
       <button type="submit" class="btn" style="width:100%;cursor:pointer;">Register</button>
     </form>

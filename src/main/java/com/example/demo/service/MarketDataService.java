@@ -1,5 +1,6 @@
 package com.example.demo.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,8 +16,9 @@ public class MarketDataService {
     
     private final MarketDataCache cache;
     
-    public MarketDataService() {
-        this.cache = new MarketDataCache();
+    @Autowired
+    public MarketDataService(MarketDataCache cache) {
+        this.cache = cache;
     }
     
     /**

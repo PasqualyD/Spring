@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DiyanniMoney - My Trades</title>
+  <link rel="stylesheet" th:href="@{/css/styles.css}" />
+</head>
+<body>
+  <div th:replace="fragments/header :: header"></div>
+  <main class="dashboard" sec:authorize="isAuthenticated()">
+    <div class="dashboard-header">
+      <h1>My Trades</h1>
+      <p class="lead">View every executed trade for your account.</p>
+      <a class="btn" th:href="@{/dashboard}">Back to Dashboard</a>
+    </div>
+
+    <section class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>Executed At</th>
+            <th>Symbol</th>
+            <th>Side</th>
+            <th>Quantity</th>
+            <th>Price</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="trade : ${tradeHistory}">
+            <td th:text="${trade.executedAt}">2026-01-01T09:00</td>
+            <td th:text="${trade.symbol}">AAPL</td>
+            <td th:text="${trade.side}">BUY</td>
+            <td th:text="${trade.quantity}">100</td>
+            <td th:text="${trade.price}">150.00</td>
+            <td th:text="${trade.status}">FILLED</td>
+          </tr>
+          <tr th:if="${#lists.isEmpty(tradeHistory)}">
+            <td colspan="6" style="text-align:center;color:var(--muted);padding:24px;">No trades found yet.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

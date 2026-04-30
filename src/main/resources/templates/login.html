@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login</title>
+  <title>DiyanniMoney - Login</title>
   <link rel="stylesheet" th:href="@{/css/styles.css}" />
 </head>
 <body>
   <div th:replace="fragments/header :: header"></div>
   <main style="max-width:400px;margin:100px auto 60px;padding:24px;">
     <h1 th:text="${message}">Login</h1>
+    <div th:if="${loginError}" style="margin-bottom:16px;padding:12px;border-radius:12px;background:rgba(255,107,107,0.14);color:#ff6b6b;">Invalid credentials. Please try again.</div>
     <form th:action="@{/login}" method="post" style="display:flex;flex-direction:column;gap:16px;margin-top:24px;">
       <div>
         <label style="display:block;margin-bottom:6px;color:white;">Email</label>

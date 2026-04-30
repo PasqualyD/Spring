@@ -28,13 +28,16 @@ public class TradeDeduplicationService {
     private static final String TRADE_DEDUP_KEY_PREFIX = "trade:dedup:";
     private static final long TTL_24_HOURS = 24 * 60 * 60;
     
-    @Autowired
-    private StringRedisTemplate redisTemplate;
-    
-    @Autowired
-    private TradeProcessor tradeProcessor;
+    private final StringRedisTemplate redisTemplate;
+    private final TradeProcessor tradeProcessor;
     
     private final ObjectMapper objectMapper = new ObjectMapper();
+    
+    @Autowired
+    public TradeDeduplicationService(StringRedisTemplate redisTemplate, TradeProcessor tradeProcessor) {
+        this.redisTemplate = redisTemplate;
+        this.tradeProcessor = tradeProcessor;
+    }
     
     /**
      * Kafka listener for trade events

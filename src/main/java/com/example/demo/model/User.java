@@ -18,6 +18,9 @@ public class User {
     @Column(nullable = false)
     private String role;
 
+    @Column(name = "portfolio_value", nullable = false)
+    private double portfolioValue = 0.0;
+
     public User() {}
 
     public User(String username, String password, String role) {
@@ -56,5 +59,13 @@ public class User {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public double getPortfolioValue() {
+        return portfolioValue;
+    }
+
+    public void setPortfolioValue(double portfolioValue) {
+        this.portfolioValue = portfolioValue;
     }
 }

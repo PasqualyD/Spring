@@ -1,12 +1,13 @@
 package com.example.demo.controller;
 
-import com.example.demo.model.Trade;
 import com.example.demo.dto.TradeExecutionResult;
+import com.example.demo.model.Trade;
 import com.example.demo.service.TradeExecutionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.concurrent.CompletableFuture;
 
 @RestController
@@ -21,8 +22,9 @@ public class TradeController {
      * POST /api/trades/execute
      */
     @PostMapping("/execute")
-    public CompletableFuture<ResponseEntity<TradeExecutionResult>> executeTrade(@RequestBody Trade trade) {
-        return tradeExecutionService.executeTrade(trade)
+    public CompletableFuture<ResponseEntity<TradeExecutionResult>> executeTrade(@RequestBody Trade trade, Principal principal) {
+        String username = principal != null ? principal.getName() : null;
+        return tradeExecutionService.executeTrade(trade, username)
             .thenApply(result -> ResponseEntity.ok(result))
             .exceptionally(ex -> ResponseEntity.status(500).body(
                 new TradeExecutionResult("ERROR", "N/A", 0, 0.0, "N/A", "FAILED", System.currentTimeMillis())
