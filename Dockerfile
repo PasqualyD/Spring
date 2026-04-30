@@ -16,3 +16,5 @@ RUN ./mvnw clean package -DskipTests
 # Step 5: Run the generated JAR file
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "target/demo-0.0.1-SNAPSHOT.jar"]
+
+#change

@@ -1,16 +1,24 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
   <head></head>
   <body>
     <header th:fragment="header" class="app-header">
       <nav class="nav">
-        <div class="brand"><a th:href="@{/}">Demo</a></div>
+        <div class="brand"><a th:href="@{/}">Spring</a></div>
         <ul class="nav-links">
           <li><a th:href="@{/}">Home</a></li>
           <li><a th:href="@{/about}">About</a></li>
           <li><a th:href="@{/contact}">Contact</a></li>
-          <li><a th:href="@{/register}">Register</a></li>
-          <li><a th:href="@{/login}" class="icon-link" title="Login">👤</a></li>
+          <li sec:authorize="isAnonymous()"><a th:href="@{/login}" class="icon-link" title="Login">👤 Login</a></li>
+          <li sec:authorize="isAnonymous()"><a th:href="@{/register}">Register</a></li>
+          <li sec:authorize="isAuthenticated()"><a th:href="@{/dashboard}">Dashboard</a></li>
+          <li sec:authorize="isAuthenticated()">
+            <form th:action="@{/logout}" method="post" style="display:inline;">
+              <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+              <button type="submit" class="muted-link" style="border:none;background:none;cursor:pointer;padding:8px 12px;border-radius:8px;">Logout</button>
+            </form>
+          </li>
+          <li sec:authorize="isAuthenticated()"><span style="color:white;font-weight:600;">Hello, <span sec:authentication="name">User</span></span></li>
         </ul>
       </nav>
     </header>

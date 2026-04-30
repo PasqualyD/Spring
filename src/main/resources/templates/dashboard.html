@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard</title>
+  <link rel="stylesheet" th:href="@{/css/styles.css}" />
+</head>
+<body>
+  <div th:replace="fragments/header :: header"></div>
+  <main class="dashboard" sec:authorize="isAuthenticated()">
+    <div class="dashboard-header">
+      <h1>Dashboard</h1>
+      <p class="lead">Manage your account, check activity, and use your member tools.</p>
+    </div>
+    <div class="dashboard-grid">
+      <div class="tool-card">
+        <h2>Profile</h2>
+        <p>Your email is <strong sec:authentication="name">user@example.com</strong>.</p>
+        <a class="btn" th:href="@{/contact}">Edit Profile</a>
+      </div>
+      <div class="tool-card">
+        <h2>Notifications</h2>
+        <p>Stay up to date with your latest account activity and system messages.</p>
+        <a class="muted-link" th:href="@{/about}">View Notifications</a>
+      </div>
+      <div class="tool-card">
+        <h2>Member Tools</h2>
+        <p>Quick access to bookmarks, saved searches, and any premium features.</p>
+        <a class="muted-link" th:href="@{/about}">Open Tools</a>
+      </div>
+      <div class="tool-card">
+        <h2>Support</h2>
+        <p>Need help? Reach out or browse documentation for answers fast.</p>
+        <a class="muted-link" th:href="@{/contact}">Contact Support</a>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

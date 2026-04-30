@@ -7,67 +7,38 @@
   <link rel="stylesheet" th:href="@{/css/styles.css}" />
 </head>
 <body>
-  <div th:replace="fragments/header :: header"></div>
+  <div th:replace="~{fragments/header :: header}"></div>
 
   <section class="hero" sec:authorize="isAnonymous()">
     <div class="left">
-      <h1 th:text="${message}">Welcome</h1>
-      <p class="lead">This is the home page — pick a page from the navigation to explore.</p>
+      <h1>Join Our Community</h1>
+      <p class="lead">Create an account to access your personal dashboard, tools, and member-only resources.</p>
       <div class="cta">
-        <a class="btn" th:href="@{/about}">Learn More</a>
-        <a class="muted-link" th:href="@{/contact}">Contact</a>
-      </div>
-      <div style="margin-top:20px;color:var(--muted)">
-        <span th:if="${name}">Personalized for <strong th:text="${name}">User</strong></span>
-        <span th:unless="${name}">No name provided — try <a class="muted-link" th:href="@{/home?name=You}">?name=You</a></span>
+        <a class="btn" th:href="@{/login}">Login</a>
+        <a class="muted-link" th:href="@{/register}">Register</a>
       </div>
     </div>
-    <aside class="card">
-      <div style="display:flex;gap:12px;align-items:center">
-        <div class="avatar" th:text="${name != null ? name.substring(0,1).toUpperCase() : 'H'}">H</div>
-        <div>
-          <div class="name" th:text="${name != null ? name : 'Hello Visitor'}">Hello Visitor</div>
-          <div class="small">Demo landing • Built with Thymeleaf</div>
-        </div>
-      </div>
-      <div style="margin-top:14px;font-size:0.95rem;color:var(--muted)">
-        <h3>Database Users:</h3>
-        <ul>
-          <li th:each="user : ${allUsers}">
-            <span th:text="${user.name}">Name</span> - 
-            <span th:text="${user.email}" style="color:var(--muted)">Email</span>
-          </li>
-        </ul>
-      </div>
-    </aside>
   </section>
 
   <section class="hero dashboard" sec:authorize="isAuthenticated()">
     <div class="dashboard-header">
       <h1>Welcome back, <span sec:authentication="name">User</span>!</h1>
-      <p class="lead">Your dashboard gives you access to personalized tools, reports, and quick actions.</p>
+      <p class="lead">Your dashboard is ready. Access your personalized tools and activity overview now.</p>
+      <div class="cta" style="margin-top:24px;">
+        <a class="btn" th:href="@{/dashboard}">Go to My Dashboard</a>
+      </div>
     </div>
-    <div class="dashboard-grid">
-      <div class="tool-card">
-        <h2>Quick Actions</h2>
-        <p>Jump into your latest projects, create new resources, and manage saved settings.</p>
-        <a class="btn" th:href="@{/about}">Open Tools</a>
-      </div>
-      <div class="tool-card">
-        <h2>Account Overview</h2>
-        <p>View your profile, update your password, and review access details.</p>
-        <a class="muted-link" th:href="@{/contact}">View Profile</a>
-      </div>
-      <div class="tool-card">
-        <h2>Analytics</h2>
-        <p>See activity metrics and user trends for your dashboard experience.</p>
-        <a class="muted-link" th:href="@{/about}">View Analytics</a>
-      </div>
-      <div class="tool-card">
-        <h2>Support</h2>
-        <p>Access help documents or contact support for advanced setup.</p>
-        <a class="muted-link" th:href="@{/contact}">Get Support</a>
-      </div>
+  </section>
+
+  <section sec:authorize="isAuthenticated()" style="max-width:1100px;margin:0 auto;padding:24px;color:white;">
+    <div class="card" style="background:rgba(255,255,255,0.04);">
+      <h3>Database Users</h3>
+      <ul>
+        <li th:each="user : ${allUsers}">
+          <span th:text="${user.name}">Name</span> - 
+          <span th:text="${user.email}" style="color:var(--muted)">Email</span>
+        </li>
+      </ul>
     </div>
   </section>
 </body>
