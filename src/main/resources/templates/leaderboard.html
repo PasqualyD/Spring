@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DiyanniMoney — Leaderboard</title>
+  <link rel="stylesheet" th:href="@{/css/styles.css}" />
+  <style>
+    .lb-header { text-align:center; margin-bottom:32px; }
+    .lb-header h1 { font-size:2rem; font-weight:700; margin-bottom:8px; }
+    .lb-header p  { color:var(--text-muted,#8a95a3); }
+
+    /* Podium */
+    .podium { display:flex; justify-content:center; align-items:flex-end; gap:16px; margin-bottom:36px; }
+    .podium-slot { text-align:center; padding:20px 24px; border-radius:12px; min-width:160px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); }
+    .podium-slot.rank-1 { border-color:#f59e0b; background:rgba(245,158,11,.08); order:2; padding-bottom:36px; }
+    .podium-slot.rank-2 { border-color:#94a3b8; background:rgba(148,163,184,.06); order:1; padding-bottom:20px; }
+    .podium-slot.rank-3 { border-color:#b45309; background:rgba(180,83,9,.06); order:3; }
+    .podium-crown { font-size:1.6rem; margin-bottom:6px; }
+    .podium-rank  { font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px; }
+    .rank-1 .podium-rank { color:#f59e0b; }
+    .rank-2 .podium-rank { color:#94a3b8; }
+    .rank-3 .podium-rank { color:#b45309; }
+    .podium-username { font-size:1rem; font-weight:700; margin-bottom:6px; word-break:break-all; }
+    .podium-value { font-family:monospace; font-size:0.9rem; color:var(--text-muted,#8a95a3); margin-bottom:4px; }
+    .podium-return { font-family:monospace; font-size:1.1rem; font-weight:700; }
+    .return-pos { color:#00d4aa; }
+    .return-neg { color:#ff4d6d; }
+
+    /* Table */
+    table { width:100%; border-collapse:collapse; font-size:0.875rem; }
+    th { text-align:left; padding:10px 12px; color:var(--text-muted,#8a95a3); font-weight:500; font-size:0.75rem; text-transform:uppercase; border-bottom:1px solid rgba(255,255,255,0.08); }
+    td { padding:12px; border-bottom:1px solid rgba(255,255,255,0.04); color:#fff; }
+    tr:last-child td { border-bottom:none; }
+    .current-user-row { border-left:3px solid #8b5cf6; }
+    .rank-num { font-weight:700; font-size:1rem; color:var(--text-muted,#8a95a3); }
+    .rank-num.gold   { color:#f59e0b; }
+    .rank-num.silver { color:#94a3b8; }
+    .rank-num.bronze { color:#b45309; }
+    .mono { font-family:monospace; }
+    .you-badge { background:rgba(139,92,246,.2); color:#a78bfa; border:1px solid rgba(139,92,246,.4); padding:2px 7px; border-radius:4px; font-size:0.7rem; font-weight:700; margin-left:6px; }
+    .empty-state { text-align:center; padding:48px; color:var(--text-muted,#8a95a3); }
+    @media(max-width:700px){
+      .podium { flex-direction:column; align-items:center; }
+      .podium-slot { order:unset !important; min-width:220px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div th:replace="~{fragments/header :: header}"></div>
+
+  <!-- Anonymous layout needs padding -->
+  <main th:class="${#authorization.expression('isAuthenticated()') ? 'page-content' : 'page-content'}"
+        style="max-width:900px;margin:0 auto;padding:32px 24px;">
+
+    <div class="lb-header">
+      <h1>Leaderboard</h1>
+      <p>Top traders by portfolio return</p>
+    </div>
+
+    <div th:if="${#lists.isEmpty(entries)}" class="empty-state">
+      No traders yet. Be the first!
+    </div>
+
+    <div th:if="${!#lists.isEmpty(entries)}">
+
+      <!-- ── Podium (top 3) ── -->
+      <div class="podium" th:if="${entries.size() >= 1}">
+        <div th:each="entry : ${entries}"
+             th:if="${entry.rank <= 3}"
+             th:class="${'podium-slot rank-' + entry.rank}">
+          <div class="podium-crown" th:if="${entry.rank == 1}">&#128081;</div>
+          <div class="podium-rank"
+               th:text="${entry.rank == 1 ? '1st Place' : entry.rank == 2 ? '2nd Place' : '3rd Place'}">1st Place</div>
+          <div class="podium-username" th:text="${entry.username}">Trader</div>
+          <div class="podium-value"
+               th:text="${'$' + #numbers.formatDecimal(entry.totalPortfolioValue, 1, 'COMMA', 2, 'POINT')}">$100,000</div>
+          <div th:with="ret=${entry.totalReturnPct}"
+               th:class="${ret >= 0 ? 'podium-return return-pos' : 'podium-return return-neg'}"
+               th:text="${(ret >= 0 ? '+' : '') + #numbers.formatDecimal(ret, 1, 'COMMA', 2, 'POINT') + '%'}">+0.00%</div>
+        </div>
+      </div>
+
+      <!-- ── Full table ── -->
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Trader</th>
+              <th>Portfolio Value</th>
+              <th>Total Return %</th>
+              <th>Trades</th>
+              <th>Top Symbol</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="entry : ${entries}"
+                th:class="${entry.username == currentUsername ? 'current-user-row' : ''}">
+              <td>
+                <span th:class="${entry.rank == 1 ? 'rank-num gold' : entry.rank == 2 ? 'rank-num silver' : entry.rank == 3 ? 'rank-num bronze' : 'rank-num'}"
+                      th:text="${'#' + entry.rank}">#1</span>
+              </td>
+              <td style="font-weight:600;">
+                <span th:text="${entry.username}">Trader</span>
+                <span th:if="${entry.username == currentUsername}" class="you-badge">YOU</span>
+              </td>
+              <td class="mono"
+                  th:text="${'$' + #numbers.formatDecimal(entry.totalPortfolioValue, 1, 'COMMA', 2, 'POINT')}">$100,000.00</td>
+              <td th:with="ret=${entry.totalReturnPct}"
+                  th:class="${ret >= 0 ? 'mono return-pos' : 'mono return-neg'}"
+                  th:text="${(ret >= 0 ? '+' : '') + #numbers.formatDecimal(ret, 1, 'COMMA', 2, 'POINT') + '%'}">+0.00%</td>
+              <td th:text="${entry.totalTrades}">0</td>
+              <td style="font-weight:600;" th:text="${entry.topSymbol}">—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </main>
+
+</body>
+</html>

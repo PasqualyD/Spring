@@ -37,56 +37,57 @@
                   <stop offset="100%" stop-color="#00d4aa" stop-opacity="0"/>
                 </linearGradient>
               </defs>
-              <!-- Grid lines -->
               <line x1="0" y1="40"  x2="800" y2="40"  stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
               <line x1="0" y1="80"  x2="800" y2="80"  stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
               <line x1="0" y1="120" x2="800" y2="120" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
-              <!-- Fill area -->
-              <path d="M0,120 L100,120 L200,120 L300,120 L400,120 L500,120 L600,120 L700,120 L800,120 L800,140 L0,140 Z"
-                    fill="url(#chartFill)"/>
-              <!-- Flat line (no trades yet) -->
-              <path d="M0,120 L800,120"
-                    fill="none" stroke="#00d4aa" stroke-width="2" stroke-linecap="round"/>
-              <!-- Dot at end -->
+              <path d="M0,120 L800,120 L800,140 L0,140 Z" fill="url(#chartFill)"/>
+              <path d="M0,120 L800,120" fill="none" stroke="#00d4aa" stroke-width="2" stroke-linecap="round"/>
               <circle cx="800" cy="120" r="4" fill="#00d4aa"/>
             </svg>
           </div>
           <div style="display:flex;justify-content:space-between;margin-top:12px;font-size:0.75rem;color:var(--text-muted);">
-            <span>No trade history yet</span>
-            <span class="mono" style="color:var(--accent-green);">$0.00</span>
+            <span th:text="${summary != null and summary.positionCount > 0 ? summary.positionCount + ' open position(s)' : 'No trade history yet'}">No trade history yet</span>
+            <span class="mono"
+                  th:classappend="${summary != null and summary.totalReturnPct >= 0} ? '' : 'red'"
+                  style="color:var(--accent-green);"
+                  th:text="${summary != null ? (summary.totalReturnPct >= 0 ? '+' : '') + #numbers.formatDecimal(summary.totalReturnPct, 1, 'COMMA', 2, 'POINT') + '%' : '0.00%'}">0.00%</span>
           </div>
         </div>
 
-        <!-- Recent activity -->
+        <!-- Recent activity / positions -->
         <div class="card">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-            <h3 style="font-size:1rem;font-weight:600;">Recent Activity</h3>
-            <a th:href="@{/dashboard/trades}" class="btn btn-outline btn-sm">View All</a>
+            <h3 style="font-size:1rem;font-weight:600;">Open Positions</h3>
+            <a th:href="@{/portfolio}" class="btn btn-primary btn-sm">Trade Now</a>
           </div>
-          <div class="empty-state">
+
+          <div th:if="${positions == null or #lists.isEmpty(positions)}" class="empty-state">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"/>
             </svg>
-            <p>No trades yet.<br>Execute your first trade to get started.</p>
+            <p>No open positions.<br>Execute your first trade to get started.</p>
           </div>
 
-          <!-- Open positions table (shown when positions exist) -->
           <div th:if="${positions != null and !#lists.isEmpty(positions)}">
             <table>
               <thead>
                 <tr>
                   <th>Symbol</th>
-                  <th>Quantity</th>
-                  <th>Last Price</th>
-                  <th>Position Value</th>
+                  <th>Shares</th>
+                  <th>Current Price</th>
+                  <th>Market Value</th>
+                  <th>P&amp;L</th>
                 </tr>
               </thead>
               <tbody>
-                <tr th:each="position : ${positions}">
-                  <td th:text="${position.symbol}">AAPL</td>
-                  <td th:text="${position.quantity}">100</td>
-                  <td th:text="${'$' + #numbers.formatDecimal(position.currentPrice, 1, 'COMMA', 2, 'POINT')}">$150.00</td>
-                  <td th:text="${'$' + #numbers.formatDecimal(position.value, 1, 'COMMA', 2, 'POINT')}">$15,000.00</td>
+                <tr th:each="pos : ${positions}">
+                  <td style="font-weight:600;" th:text="${pos.symbol}">AAPL</td>
+                  <td th:text="${#numbers.formatDecimal(pos.quantity, 1, 'COMMA', 2, 'POINT')}">10.00</td>
+                  <td th:text="${'$' + #numbers.formatDecimal(pos.currentPrice, 1, 'COMMA', 2, 'POINT')}">$189.42</td>
+                  <td th:text="${'$' + #numbers.formatDecimal(pos.marketValue, 1, 'COMMA', 2, 'POINT')}">$1,894.20</td>
+                  <td th:with="pnl=${pos.unrealizedPnl}"
+                      th:style="${pnl >= 0 ? 'color:#00d4aa;font-weight:600' : 'color:#ff4d6d;font-weight:600'}"
+                      th:text="${(pnl >= 0 ? '+$' : '-$') + #numbers.formatDecimal((pnl >= 0 ? pnl : pnl.negate()), 1, 'COMMA', 2, 'POINT')}">+$0.00</td>
                 </tr>
               </tbody>
             </table>
@@ -104,60 +105,59 @@
             <div class="account-avatar" id="dashAvatar">U</div>
           </div>
           <div class="account-name" sec:authentication="name">User</div>
-          <div class="account-meta">Member since April 2025</div>
+          <div class="account-meta">Paper Trader</div>
           <div style="margin-top:8px;"><span class="role-badge">TRADER</span></div>
-          <a th:href="@{/contact}" class="btn btn-outline btn-sm" style="margin-top:16px;width:100%;">Edit Profile</a>
+          <a th:href="@{/portfolio}" class="btn btn-primary btn-sm" style="margin-top:16px;width:100%;">Trade Now</a>
         </div>
 
         <!-- Quick stats -->
         <div class="card">
           <div class="card-title" style="margin-bottom:12px;">Quick Stats</div>
           <div class="qs-row">
-            <span class="qs-label">Win Rate</span>
-            <span class="qs-val">0%</span>
+            <span class="qs-label">Cash Balance</span>
+            <span class="qs-val green"
+                  th:text="${summary != null ? '$' + #numbers.formatDecimal(summary.cashBalance, 1, 'COMMA', 2, 'POINT') : '$100,000.00'}">$100,000.00</span>
           </div>
           <div class="qs-row">
-            <span class="qs-label">Total Volume</span>
-            <span class="qs-val">$0.00</span>
+            <span class="qs-label">Positions Value</span>
+            <span class="qs-val"
+                  th:text="${summary != null ? '$' + #numbers.formatDecimal(summary.totalPositionValue, 1, 'COMMA', 2, 'POINT') : '$0.00'}">$0.00</span>
           </div>
           <div class="qs-row">
-            <span class="qs-label">Best Trade</span>
-            <span class="qs-val" style="color:var(--text-muted);">N/A</span>
+            <span class="qs-label">Positions Open</span>
+            <span class="qs-val" th:text="${summary != null ? summary.positionCount : 0}">0</span>
           </div>
           <div class="qs-row">
             <span class="qs-label">Portfolio Value</span>
-            <span class="qs-val green" th:text="${portfolioValue != null ? '$' + #numbers.formatDecimal(portfolioValue, 1, 'COMMA', 2, 'POINT') : '$0.00'}">$0.00</span>
+            <span class="qs-val green"
+                  th:text="${summary != null ? '$' + #numbers.formatDecimal(summary.totalPortfolioValue, 1, 'COMMA', 2, 'POINT') : '$100,000.00'}">$100,000.00</span>
           </div>
           <div class="qs-row">
-            <span class="qs-label">P&amp;L</span>
-            <span class="qs-val" th:classappend="${portfolioPnl != null and portfolioPnl >= 0} ? 'green' : 'red'"
-                  th:text="${portfolioPnl != null ? (portfolioPnl >= 0 ? '+$' : '-$') + #numbers.formatDecimal((portfolioPnl >= 0 ? portfolioPnl : -portfolioPnl), 1, 'COMMA', 2, 'POINT') : '$0.00'}">$0.00</span>
+            <span class="qs-label">Total Return</span>
+            <span th:if="${summary != null}"
+                  th:class="${summary.totalReturnPct >= 0 ? 'qs-val green' : 'qs-val red'}"
+                  th:text="${(summary.totalReturnPct >= 0 ? '+' : '') + #numbers.formatDecimal(summary.totalReturnPct, 1, 'COMMA', 2, 'POINT') + '%'}">+0.00%</span>
+            <span th:if="${summary == null}" class="qs-val">0.00%</span>
           </div>
         </div>
 
-        <!-- Market snapshot -->
+        <!-- Market snapshot (live prices) -->
         <div class="card">
           <div class="card-title" style="margin-bottom:12px;">Market Snapshot</div>
-          <div class="market-row">
-            <span class="market-symbol">AAPL</span>
-            <span class="market-price">$189.42</span>
-            <span class="market-change up">+2.3%</span>
-          </div>
-          <div class="market-row">
-            <span class="market-symbol">TSLA</span>
-            <span class="market-price">$248.10</span>
-            <span class="market-change dn">-1.1%</span>
-          </div>
-          <div class="market-row">
-            <span class="market-symbol">MSFT</span>
-            <span class="market-price">$415.80</span>
-            <span class="market-change up">+0.8%</span>
-          </div>
-          <div class="market-row">
-            <span class="market-symbol">NVDA</span>
-            <span class="market-price">$875.20</span>
-            <span class="market-change up">+4.2%</span>
-          </div>
+          <th:block th:if="${marketPrices != null}" th:each="sym : ${snapSymbols}">
+            <div class="market-row" th:if="${marketPrices[sym] != null}">
+              <span class="market-symbol" th:text="${sym}">AAPL</span>
+              <span class="market-price mono"
+                    th:text="${'$' + #numbers.formatDecimal(marketPrices[sym], 1, 'COMMA', 2, 'POINT')}">$0.00</span>
+              <span class="market-change up">LIVE</span>
+            </div>
+          </th:block>
+          <th:block th:if="${marketPrices == null}">
+            <div class="market-row"><span class="market-symbol">AAPL</span><span class="market-price">$189.42</span><span class="market-change up">—</span></div>
+            <div class="market-row"><span class="market-symbol">TSLA</span><span class="market-price">$248.10</span><span class="market-change dn">—</span></div>
+            <div class="market-row"><span class="market-symbol">MSFT</span><span class="market-price">$415.80</span><span class="market-change up">—</span></div>
+            <div class="market-row"><span class="market-symbol">NVDA</span><span class="market-price">$875.20</span><span class="market-change up">—</span></div>
+          </th:block>
         </div>
 
       </div>

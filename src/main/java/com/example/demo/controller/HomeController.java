@@ -1,11 +1,12 @@
 package com.example.demo.controller;
 
 import com.example.demo.dto.RegistrationForm;
-import com.example.demo.model.Trade;
+import com.example.demo.model.Portfolio;
 import com.example.demo.model.User;
-import com.example.demo.repository.TradeRepository;
+import com.example.demo.repository.PortfolioRepository;
 import com.example.demo.repository.UserRepository;
 import com.example.demo.service.MarketDataService;
+import com.example.demo.service.PortfolioService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -23,8 +24,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import jakarta.validation.Valid;
 import java.security.Principal;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,19 +32,22 @@ import java.util.Map;
 public class HomeController {
 
     private final UserRepository userRepository;
-    private final TradeRepository tradeRepository;
+    private final PortfolioRepository portfolioRepository;
     private final MarketDataService marketDataService;
+    private final PortfolioService portfolioService;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
 
     public HomeController(UserRepository userRepository,
-                          TradeRepository tradeRepository,
+                          PortfolioRepository portfolioRepository,
                           MarketDataService marketDataService,
+                          PortfolioService portfolioService,
                           PasswordEncoder passwordEncoder,
                           AuthenticationManager authenticationManager) {
         this.userRepository = userRepository;
-        this.tradeRepository = tradeRepository;
+        this.portfolioRepository = portfolioRepository;
         this.marketDataService = marketDataService;
+        this.portfolioService = portfolioService;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
     }
@@ -53,10 +55,8 @@ public class HomeController {
     @GetMapping({"/", "/home"})
     public String home(Model model) {
         model.addAttribute("message", "Welcome");
-
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         boolean authenticated = auth != null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken);
-
         if (authenticated) {
             model.addAttribute("allUsers", userRepository.findAll());
         }
@@ -94,44 +94,29 @@ public class HomeController {
         model.addAttribute("message", "Dashboard");
 
         if (principal != null) {
-            String username = principal.getName();
-            User user = userRepository.findByUsername(username);
+            User user = userRepository.findByUsername(principal.getName());
             if (user != null) {
                 model.addAttribute("currentUser", user);
-                List<Trade> trades = tradeRepository.findByUserOrderByExecutedAtDesc(user);
 
-                Map<String, Integer> holdings = new HashMap<>();
-                double totalCost = 0;
+                PortfolioService.PortfolioSummary summary = portfolioService.getPortfolioSummary(user);
+                List<PortfolioService.PositionWithValue> positions = portfolioService.getPositionsWithValue(user);
 
-                for (Trade trade : trades) {
-                    if (!"FILLED".equalsIgnoreCase(trade.getStatus())) {
-                        continue;
-                    }
-                    int delta = "SELL".equalsIgnoreCase(trade.getSide()) ? -trade.getQuantity() : trade.getQuantity();
-                    holdings.merge(trade.getSymbol(), delta, Integer::sum);
-                    totalCost += "SELL".equalsIgnoreCase(trade.getSide()) ? -trade.getQuantity() * trade.getPrice() : trade.getQuantity() * trade.getPrice();
-                }
-
-                List<PortfolioPosition> positions = new ArrayList<>();
-                double currentValue = 0;
-                for (Map.Entry<String, Integer> entry : holdings.entrySet()) {
-                    if (entry.getValue() == 0) {
-                        continue;
-                    }
-                    double price = marketDataService.getPrice(entry.getKey()).orElse(0.0);
-                    double positionValue = price * entry.getValue();
-                    currentValue += positionValue;
-                    positions.add(new PortfolioPosition(entry.getKey(), entry.getValue(), price, positionValue));
-                }
-
-                double pnl = currentValue - totalCost;
-                user.setPortfolioValue(currentValue);
-                userRepository.save(user);
-
+                model.addAttribute("summary", summary);
                 model.addAttribute("positions", positions);
-                model.addAttribute("portfolioValue", currentValue);
-                model.addAttribute("portfolioPnl", pnl);
-                model.addAttribute("tradeCount", trades.size());
+                model.addAttribute("portfolioValue", summary.getTotalPortfolioValue());
+                model.addAttribute("portfolioPnl", summary.getTotalPortfolioValue()
+                        .subtract(summary.getCashBalance().add(summary.getTotalPositionValue())
+                                .subtract(summary.getTotalPortfolioValue())));
+                model.addAttribute("tradeCount", portfolioService.getRecentTrades(user, 1000).size());
+
+                // Market snapshot: top 5 symbols with live prices
+                String[] snapSymbols = {"AAPL", "TSLA", "MSFT", "NVDA", "AMZN"};
+                Map<String, Double> marketPrices = new HashMap<>();
+                for (String sym : snapSymbols) {
+                    marketDataService.getPrice(sym).ifPresent(p -> marketPrices.put(sym, p));
+                }
+                model.addAttribute("marketPrices", marketPrices);
+                model.addAttribute("snapSymbols", snapSymbols);
             }
         }
 
@@ -144,7 +129,7 @@ public class HomeController {
         if (principal != null) {
             User user = userRepository.findByUsername(principal.getName());
             if (user != null) {
-                model.addAttribute("tradeHistory", tradeRepository.findByUserOrderByExecutedAtDesc(user));
+                model.addAttribute("tradeHistory", portfolioService.getRecentTrades(user, 1000));
             }
         }
         return "trades";
@@ -175,7 +160,12 @@ public class HomeController {
         newUser.setRole("ROLE_USER");
         userRepository.save(newUser);
 
-        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(registrationForm.getEmail(), registrationForm.getPassword());
+        Portfolio portfolio = new Portfolio();
+        portfolio.setUser(newUser);
+        portfolioRepository.save(portfolio);
+
+        UsernamePasswordAuthenticationToken token =
+                new UsernamePasswordAuthenticationToken(registrationForm.getEmail(), registrationForm.getPassword());
         Authentication authentication = authenticationManager.authenticate(token);
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
@@ -183,35 +173,5 @@ public class HomeController {
         session.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
 
         return "redirect:/dashboard";
-    }
-
-    public static class PortfolioPosition {
-        private final String symbol;
-        private final int quantity;
-        private final double currentPrice;
-        private final double value;
-
-        public PortfolioPosition(String symbol, int quantity, double currentPrice, double value) {
-            this.symbol = symbol;
-            this.quantity = quantity;
-            this.currentPrice = currentPrice;
-            this.value = value;
-        }
-
-        public String getSymbol() {
-            return symbol;
-        }
-
-        public int getQuantity() {
-            return quantity;
-        }
-
-        public double getCurrentPrice() {
-            return currentPrice;
-        }
-
-        public double getValue() {
-            return value;
-        }
     }
 }

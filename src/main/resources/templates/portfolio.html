@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DiyanniMoney — Portfolio</title>
+  <link rel="stylesheet" th:href="@{/css/styles.css}" />
+  <style>
+    .stat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
+    .stat-card { background:var(--card-bg,rgba(255,255,255,0.05)); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:20px 24px; }
+    .stat-label { font-size:0.75rem; color:var(--text-muted,#8a95a3); text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px; }
+    .stat-value { font-size:1.6rem; font-weight:700; font-family:monospace; color:#fff; }
+    .stat-value.green { color:#00d4aa; }
+    .stat-value.red   { color:#ff4d6d; }
+    .portfolio-grid { display:grid; gap:24px; }
+    .flash-success { background:rgba(0,212,170,.15); border:1px solid #00d4aa; color:#00d4aa; padding:12px 16px; border-radius:8px; margin-bottom:20px; }
+    .flash-error   { background:rgba(255,77,109,.15); border:1px solid #ff4d6d; color:#ff4d6d; padding:12px 16px; border-radius:8px; margin-bottom:20px; }
+    table { width:100%; border-collapse:collapse; font-size:0.875rem; }
+    th { text-align:left; padding:10px 12px; color:var(--text-muted,#8a95a3); font-weight:500; font-size:0.75rem; text-transform:uppercase; border-bottom:1px solid rgba(255,255,255,0.08); }
+    td { padding:12px; border-bottom:1px solid rgba(255,255,255,0.04); color:#fff; }
+    tr:last-child td { border-bottom:none; }
+    .pnl-pos { color:#00d4aa; font-weight:600; }
+    .pnl-neg { color:#ff4d6d; font-weight:600; }
+    .side-buy  { color:#00d4aa; font-weight:600; }
+    .side-sell { color:#ff4d6d; font-weight:600; }
+    .trade-row-buy  { border-left:3px solid #00d4aa; }
+    .trade-row-sell { border-left:3px solid #ff4d6d; }
+    .status-filled   { background:rgba(0,212,170,.15); color:#00d4aa; padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:600; }
+    .status-rejected { background:rgba(255,77,109,.15); color:#ff4d6d; padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:600; }
+    .form-group { margin-bottom:16px; }
+    .form-group label { display:block; font-size:0.8rem; color:var(--text-muted,#8a95a3); margin-bottom:6px; }
+    .form-group select,
+    .form-group input[type=number] { width:100%; padding:10px 12px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:8px; color:#fff; font-size:0.9rem; }
+    .form-group select option { background:#1a2230; }
+    .side-toggle { display:flex; gap:0; margin-bottom:16px; }
+    .side-toggle input[type=radio] { display:none; }
+    .side-toggle label { flex:1; text-align:center; padding:10px; cursor:pointer; font-weight:600; font-size:0.85rem; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.04); color:var(--text-muted,#8a95a3); transition:all .2s; }
+    .side-toggle label:first-of-type { border-radius:8px 0 0 8px; }
+    .side-toggle label:last-of-type  { border-radius:0 8px 8px 0; }
+    .side-toggle input[value=BUY]:checked  + label { background:rgba(0,212,170,.2); border-color:#00d4aa; color:#00d4aa; }
+    .side-toggle input[value=SELL]:checked + label { background:rgba(255,77,109,.2); border-color:#ff4d6d; color:#ff4d6d; }
+    .estimate-box { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:12px 16px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; }
+    .estimate-label { font-size:0.8rem; color:var(--text-muted,#8a95a3); }
+    .estimate-value { font-size:1rem; font-weight:700; font-family:monospace; color:#fff; }
+    .empty-state-sm { text-align:center; padding:32px 0; color:var(--text-muted,#8a95a3); font-size:0.875rem; }
+    .metrics-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+    .metric-card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07); border-radius:10px; padding:16px 20px; }
+    .metric-label { font-size:0.72rem; color:var(--text-muted,#8a95a3); text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px; }
+    .metric-value { font-size:1.25rem; font-weight:700; font-family:monospace; color:#fff; }
+    .metric-value.green { color:#00d4aa; }
+    .metric-value.red   { color:#ff4d6d; }
+    @media(max-width:900px){ .stat-grid{ grid-template-columns:1fr 1fr; } .metrics-grid{ grid-template-columns:1fr 1fr; } }
+    @media(max-width:500px){ .stat-grid{ grid-template-columns:1fr; } .metrics-grid{ grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+
+  <div th:replace="~{fragments/header :: header}"></div>
+
+  <main class="page-content" sec:authorize="isAuthenticated()">
+
+    <div class="welcome-banner">
+      <h1>Portfolio</h1>
+      <p>Manage your positions, execute trades, and track your performance.</p>
+    </div>
+
+    <!-- Flash messages -->
+    <div th:if="${successMessage}" class="flash-success" th:text="${successMessage}"></div>
+    <div th:if="${errorMessage}"   class="flash-error"   th:text="${errorMessage}"></div>
+
+    <!-- ── STAT CARDS ── -->
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">Cash Balance</div>
+        <div class="stat-value green"
+             th:text="${'$' + #numbers.formatDecimal(summary.cashBalance, 1, 'COMMA', 2, 'POINT')}">$100,000.00</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Portfolio Value</div>
+        <div class="stat-value"
+             th:text="${'$' + #numbers.formatDecimal(summary.totalPortfolioValue, 1, 'COMMA', 2, 'POINT')}">$100,000.00</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Return</div>
+        <div th:with="ret=${summary.totalReturnPct}"
+             th:class="${ret >= 0 ? 'stat-value green' : 'stat-value red'}"
+             th:text="${(ret >= 0 ? '+' : '') + #numbers.formatDecimal(ret, 1, 'COMMA', 2, 'POINT') + '%'}">+0.00%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Open Positions</div>
+        <div class="stat-value" th:text="${summary.positionCount}">0</div>
+      </div>
+    </div>
+
+    <div class="portfolio-grid">
+
+      <!-- ── POSITIONS TABLE ── -->
+      <div class="card">
+        <h3 style="font-size:1rem;font-weight:600;margin-bottom:16px;">My Positions</h3>
+
+        <div th:if="${positions == null or #lists.isEmpty(positions)}" class="empty-state-sm">
+          No open positions. Place your first trade below.
+        </div>
+
+        <div th:if="${positions != null and !#lists.isEmpty(positions)}">
+          <table>
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Shares</th>
+                <th>Avg Cost</th>
+                <th>Current Price</th>
+                <th>Market Value</th>
+                <th>Unrealized P&amp;L</th>
+                <th>P&amp;L %</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="pos : ${positions}">
+                <td style="font-weight:600;" th:text="${pos.symbol}">AAPL</td>
+                <td class="mono" th:text="${#numbers.formatDecimal(pos.quantity, 1, 'COMMA', 2, 'POINT')}">10.00</td>
+                <td class="mono" th:text="${'$' + #numbers.formatDecimal(pos.averageCostBasis, 1, 'COMMA', 2, 'POINT')}">$189.42</td>
+                <td class="mono" th:text="${'$' + #numbers.formatDecimal(pos.currentPrice, 1, 'COMMA', 2, 'POINT')}">$192.00</td>
+                <td class="mono" th:text="${'$' + #numbers.formatDecimal(pos.marketValue, 1, 'COMMA', 2, 'POINT')}">$1,920.00</td>
+                <td th:with="pnl=${pos.unrealizedPnl}"
+                    th:class="${pnl >= 0 ? 'mono pnl-pos' : 'mono pnl-neg'}"
+                    th:text="${(pnl >= 0 ? '+$' : '-$') + #numbers.formatDecimal((pnl >= 0 ? pnl : pnl.negate()), 1, 'COMMA', 2, 'POINT')}">+$26.00</td>
+                <td th:with="pct=${pos.pnlPercent}"
+                    th:class="${pct >= 0 ? 'mono pnl-pos' : 'mono pnl-neg'}"
+                    th:text="${(pct >= 0 ? '+' : '') + #numbers.formatDecimal(pct, 1, 'COMMA', 2, 'POINT') + '%'}">+1.37%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── TRADE FORM ── -->
+      <div class="card">
+        <h3 style="font-size:1rem;font-weight:600;margin-bottom:20px;">Place a Trade</h3>
+
+        <form th:action="@{/trade}" method="post">
+          <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+          <div class="form-group">
+            <label for="symbolSelect">Symbol</label>
+            <select id="symbolSelect" name="symbol" onchange="updateEstimate()">
+              <option th:each="sym : ${allSymbols}"
+                      th:value="${sym}"
+                      th:text="${sym}">AAPL</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Side</label>
+            <div class="side-toggle">
+              <input type="radio" id="sideBuy" name="side" value="BUY" checked>
+              <label for="sideBuy">BUY</label>
+              <input type="radio" id="sideSell" name="side" value="SELL">
+              <label for="sideSell">SELL</label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="qtyInput">Quantity</label>
+            <input type="number" id="qtyInput" name="quantity"
+                   min="0.01" step="0.01" value="1"
+                   oninput="updateEstimate()" />
+          </div>
+
+          <div class="estimate-box">
+            <span class="estimate-label">Estimated Cost</span>
+            <span class="estimate-value" id="estimatedCost">$0.00</span>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;">Execute Trade</button>
+        </form>
+      </div>
+
+      <!-- ── TRADE HISTORY ── -->
+      <div class="card">
+        <h3 style="font-size:1rem;font-weight:600;margin-bottom:16px;">Recent Trades</h3>
+
+        <div th:if="${recentTrades == null or #lists.isEmpty(recentTrades)}" class="empty-state-sm">
+          No trades yet. Execute your first trade above.
+        </div>
+
+        <div th:if="${recentTrades != null and !#lists.isEmpty(recentTrades)}">
+          <table>
+            <thead>
+              <tr>
+                <th>Date / Time</th>
+                <th>Symbol</th>
+                <th>Side</th>
+                <th>Shares</th>
+                <th>Price</th>
+                <th>Total</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="trade : ${recentTrades}"
+                  th:class="${'BUY'.equals(trade.side) ? 'trade-row-buy' : 'trade-row-sell'}">
+                <td style="color:var(--text-muted,#8a95a3);font-size:0.8rem;"
+                    th:text="${#temporals.format(trade.executedAt, 'MM/dd HH:mm')}">01/01 09:30</td>
+                <td style="font-weight:600;" th:text="${trade.symbol}">AAPL</td>
+                <td th:class="${'BUY'.equals(trade.side) ? 'side-buy' : 'side-sell'}"
+                    th:text="${trade.side}">BUY</td>
+                <td class="mono" th:text="${#numbers.formatDecimal(trade.quantity, 1, 'COMMA', 2, 'POINT')}">10.00</td>
+                <td class="mono" th:text="${'$' + #numbers.formatDecimal(trade.priceAtExecution, 1, 'COMMA', 2, 'POINT')}">$189.42</td>
+                <td class="mono" th:text="${'$' + #numbers.formatDecimal(trade.totalValue, 1, 'COMMA', 2, 'POINT')}">$1,894.20</td>
+                <td>
+                  <span th:class="${'FILLED'.equals(trade.status) ? 'status-filled' : 'status-rejected'}"
+                        th:text="${trade.status}">FILLED</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── TRADING STATISTICS ── -->
+      <div class="card">
+        <h3 style="font-size:1rem;font-weight:600;margin-bottom:16px;">Trading Statistics</h3>
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">Total Trades</div>
+            <div class="metric-value" th:text="${metrics.totalTrades}">0</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Win Rate</div>
+            <div th:with="wr=${metrics.winRate}"
+                 th:class="${wr >= 50 ? 'metric-value green' : 'metric-value red'}"
+                 th:text="${#numbers.formatDecimal(wr, 1, 'COMMA', 2, 'POINT') + '%'}">0.00%</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Total Volume</div>
+            <div class="metric-value"
+                 th:text="${'$' + #numbers.formatDecimal(metrics.totalVolumeTraded, 1, 'COMMA', 2, 'POINT')}">$0.00</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Best Trade P&amp;L</div>
+            <div class="metric-value green"
+                 th:text="${'$' + #numbers.formatDecimal(metrics.bestTrade, 1, 'COMMA', 2, 'POINT')}">$0.00</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Worst Trade P&amp;L</div>
+            <div class="metric-value red"
+                 th:text="${'$' + #numbers.formatDecimal(metrics.worstTrade, 1, 'COMMA', 2, 'POINT')}">$0.00</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Most Traded Symbol</div>
+            <div class="metric-value" th:text="${metrics.mostTradedSymbol}">—</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Price data for estimated cost calculation -->
+  <script th:inline="javascript">
+    /*<![CDATA[*/
+    var PRICES = /*[[${allPrices}]]*/ {};
+
+    function updateEstimate() {
+      var symbol = document.getElementById('symbolSelect').value;
+      var qty    = parseFloat(document.getElementById('qtyInput').value) || 0;
+      var price  = PRICES[symbol] || 0;
+      var est    = (price * qty).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      document.getElementById('estimatedCost').textContent = '$' + est;
+    }
+
+    document.addEventListener('DOMContentLoaded', updateEstimate);
+    /*]]>*/
+  </script>
+
+</body>
+</html>
