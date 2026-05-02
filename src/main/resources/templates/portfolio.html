@@ -118,7 +118,7 @@
             </thead>
             <tbody>
               <tr th:each="pos : ${positions}">
-                <td style="font-weight:600;" th:text="${pos.symbol}">AAPL</td>
+                <td style="font-weight:600;"><a th:href="@{/chart/{s}(s=${pos.symbol})}" style="color:#a78bfa;text-decoration:none;" th:text="${pos.symbol}">AAPL</a></td>
                 <td class="mono" th:text="${#numbers.formatDecimal(pos.quantity, 1, 'COMMA', 2, 'POINT')}">10.00</td>
                 <td class="mono" th:text="${'$' + #numbers.formatDecimal(pos.averageCostBasis, 1, 'COMMA', 2, 'POINT')}">$189.42</td>
                 <td class="mono" th:text="${'$' + #numbers.formatDecimal(pos.currentPrice, 1, 'COMMA', 2, 'POINT')}">$192.00</td>
@@ -203,7 +203,7 @@
                   th:class="${'BUY'.equals(trade.side) ? 'trade-row-buy' : 'trade-row-sell'}">
                 <td style="color:var(--text-muted,#8a95a3);font-size:0.8rem;"
                     th:text="${#temporals.format(trade.executedAt, 'MM/dd HH:mm')}">01/01 09:30</td>
-                <td style="font-weight:600;" th:text="${trade.symbol}">AAPL</td>
+                <td style="font-weight:600;"><a th:href="@{/chart/{s}(s=${trade.symbol})}" style="color:#a78bfa;text-decoration:none;" th:text="${trade.symbol}">AAPL</a></td>
                 <td th:class="${'BUY'.equals(trade.side) ? 'side-buy' : 'side-sell'}"
                     th:text="${trade.side}">BUY</td>
                 <td class="mono" th:text="${#numbers.formatDecimal(trade.quantity, 1, 'COMMA', 2, 'POINT')}">10.00</td>

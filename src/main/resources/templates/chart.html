@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DiyanniMoney — Charts</title>
+  <link rel="stylesheet" th:href="@{/css/styles.css}" />
+  <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+  <style>
+    .chart-page { max-width:1400px; margin:0 auto; }
+
+    /* Top bar */
+    .chart-topbar { display:flex; align-items:center; gap:20px; margin-bottom:20px; flex-wrap:wrap; }
+    .chart-symbol-select { padding:9px 14px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14); border-radius:8px; color:#fff; font-size:1rem; font-weight:600; min-width:120px; }
+    .chart-symbol-select option { background:#1a2230; }
+
+    .chart-price-display { flex:1; text-align:center; }
+    .chart-current-price { font-size:2rem; font-weight:700; font-family:monospace; color:#fff; }
+    .chart-price-change { font-size:0.95rem; font-family:monospace; margin-top:2px; }
+    .chart-price-change.up { color:#00d4aa; }
+    .chart-price-change.dn { color:#ff4d6d; }
+    .chart-updated { font-size:0.72rem; color:#8a95a3; margin-top:3px; }
+
+    .tf-group { display:flex; gap:4px; }
+    .tf-btn { padding:7px 14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:6px; color:#8a95a3; font-size:0.82rem; font-weight:600; cursor:pointer; transition:all .15s; }
+    .tf-btn:hover { background:rgba(255,255,255,0.1); color:#fff; }
+    .tf-btn.active { background:rgba(139,92,246,.25); border-color:#a78bfa; color:#a78bfa; }
+
+    /* Chart wrapper */
+    .chart-main-wrapper { position:relative; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08); border-radius:12px; overflow:hidden; margin-bottom:16px; }
+    #mainChart { width:100%; height:500px; }
+
+    .sim-badge { position:absolute; top:12px; right:12px; background:rgba(139,92,246,.2); border:1px solid rgba(139,92,246,.4); color:#a78bfa; font-size:0.7rem; font-weight:700; padding:3px 10px; border-radius:4px; letter-spacing:.05em; z-index:10; }
+
+    /* Lower panels */
+    .chart-lower { display:grid; grid-template-columns:1fr 280px; gap:16px; margin-bottom:16px; }
+    .chart-volume-wrapper { background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08); border-radius:12px; overflow:hidden; }
+    #volumeChart { width:100%; height:120px; }
+
+    .ohlcv-card { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:16px 20px; }
+    .ohlcv-title { font-size:0.72rem; color:#8a95a3; text-transform:uppercase; letter-spacing:.06em; margin-bottom:12px; }
+    .ohlcv-row { display:flex; justify-content:space-between; padding:5px 0; font-size:0.85rem; }
+    .ohlcv-label { color:#8a95a3; }
+    .ohlcv-val { font-family:monospace; font-weight:600; color:#fff; }
+    .ohlcv-val.hi { color:#00d4aa; }
+    .ohlcv-val.lo { color:#ff4d6d; }
+
+    /* Bottom info cards */
+    .chart-info-row { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+    .info-card { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:14px 18px; }
+    .info-card-label { font-size:0.72rem; color:#8a95a3; text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px; }
+    .info-card-val { font-family:monospace; font-size:1.1rem; font-weight:700; color:#fff; }
+
+    /* Flash on price update */
+    @keyframes flashUp { 0%,100%{text-shadow:none} 50%{text-shadow:0 0 12px #00d4aa,0 0 24px #00d4aa80} }
+    @keyframes flashDn { 0%,100%{text-shadow:none} 50%{text-shadow:0 0 12px #ff4d6d,0 0 24px #ff4d6d80} }
+    .price-flash-up { animation:flashUp 0.6s ease-out; }
+    .price-flash-dn { animation:flashDn 0.6s ease-out; }
+
+    @media(max-width:900px){
+      .chart-lower { grid-template-columns:1fr; }
+      .chart-info-row { grid-template-columns:1fr 1fr; }
+    }
+    @media(max-width:500px){
+      .chart-info-row { grid-template-columns:1fr; }
+      .tf-group { flex-wrap:wrap; }
+    }
+  </style>
+</head>
+<body>
+
+  <div th:replace="~{fragments/header :: header}"></div>
+
+  <main class="page-content" sec:authorize="isAuthenticated()">
+    <div class="chart-page">
+
+      <div class="welcome-banner" style="margin-bottom:16px;">
+        <h1>Price Charts</h1>
+        <p>Interactive candlestick charts with real-time price updates.</p>
+      </div>
+
+      <!-- Top bar: symbol | price | timeframes -->
+      <div class="chart-topbar">
+        <select id="symbolSelect" class="chart-symbol-select" onchange="changeSymbol(this.value)">
+          <option th:each="sym : ${symbols}"
+                  th:value="${sym}"
+                  th:text="${sym}"
+                  th:selected="${sym == defaultSymbol}">AAPL</option>
+        </select>
+
+        <div class="chart-price-display">
+          <div class="chart-current-price" id="currentPrice">—</div>
+          <div class="chart-price-change" id="priceChange">— —%</div>
+          <div class="chart-updated" id="lastUpdated"></div>
+        </div>
+
+        <div class="tf-group">
+          <button class="tf-btn" data-days="1"   onclick="setTimeframe(this)">1D</button>
+          <button class="tf-btn" data-days="5"   onclick="setTimeframe(this)">5D</button>
+          <button class="tf-btn active" data-days="30"  onclick="setTimeframe(this)">1M</button>
+          <button class="tf-btn" data-days="90"  onclick="setTimeframe(this)">3M</button>
+          <button class="tf-btn" data-days="180" onclick="setTimeframe(this)">6M</button>
+          <button class="tf-btn" data-days="365" onclick="setTimeframe(this)">1Y</button>
+        </div>
+      </div>
+
+      <!-- Main candlestick chart -->
+      <div class="chart-main-wrapper">
+        <div id="mainChart"></div>
+        <div th:if="${isSimulated}" class="sim-badge">SIMULATED DATA</div>
+      </div>
+
+      <!-- Volume + OHLCV -->
+      <div class="chart-lower">
+        <div class="chart-volume-wrapper">
+          <div id="volumeChart"></div>
+        </div>
+        <div class="ohlcv-card">
+          <div class="ohlcv-title">OHLCV</div>
+          <div class="ohlcv-row"><span class="ohlcv-label">Open</span><span class="ohlcv-val" id="ohlcO">—</span></div>
+          <div class="ohlcv-row"><span class="ohlcv-label">High</span><span class="ohlcv-val hi" id="ohlcH">—</span></div>
+          <div class="ohlcv-row"><span class="ohlcv-label">Low</span><span class="ohlcv-val lo" id="ohlcL">—</span></div>
+          <div class="ohlcv-row"><span class="ohlcv-label">Close</span><span class="ohlcv-val" id="ohlcC">—</span></div>
+          <div class="ohlcv-row"><span class="ohlcv-label">Volume</span><span class="ohlcv-val" id="ohlcV">—</span></div>
+        </div>
+      </div>
+
+      <!-- 52-week stats -->
+      <div class="chart-info-row">
+        <div class="info-card">
+          <div class="info-card-label">52-Week High</div>
+          <div class="info-card-val" id="stat52Hi">—</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">52-Week Low</div>
+          <div class="info-card-val" id="stat52Lo">—</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">Avg Volume</div>
+          <div class="info-card-val" id="statAvgVol">—</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">Market Cap</div>
+          <div class="info-card-val">N/A</div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script th:inline="javascript">
+  /*<![CDATA[*/
+  var DEFAULT_SYMBOL = /*[[${defaultSymbol}]]*/ 'AAPL';
+  /*]]>*/
+  </script>
+
+  <script>
+    var mainChart, candleSeries, volumeChart, volumeSeries;
+    var currentSymbol = DEFAULT_SYMBOL;
+    var currentDays = 30;
+    var lastPrice = null;
+    var latestBars = [];
+
+    var CHART_OPTS = {
+      layout: { background: { type: 'solid', color: '#0a0e1a' }, textColor: '#94a3b8' },
+      grid: { vertLines: { color: 'rgba(255,255,255,0.04)' }, horzLines: { color: 'rgba(255,255,255,0.04)' } },
+      crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+      rightPriceScale: { borderColor: 'rgba(255,255,255,0.1)' },
+      timeScale: { borderColor: 'rgba(255,255,255,0.1)', timeVisible: true },
+      handleScroll: true,
+      handleScale: true
+    };
+
+    function initCharts() {
+      mainChart = LightweightCharts.createChart(document.getElementById('mainChart'), {
+        ...CHART_OPTS,
+        height: 500
+      });
+      candleSeries = mainChart.addCandlestickSeries({
+        upColor: '#00d4aa', downColor: '#ff4d6d',
+        borderUpColor: '#00d4aa', borderDownColor: '#ff4d6d',
+        wickUpColor: '#00d4aa', wickDownColor: '#ff4d6d'
+      });
+
+      volumeChart = LightweightCharts.createChart(document.getElementById('volumeChart'), {
+        ...CHART_OPTS,
+        height: 120,
+        rightPriceScale: { borderColor: 'rgba(255,255,255,0.1)', scaleMargins: { top: 0.1, bottom: 0 } },
+        timeScale: { borderColor: 'rgba(255,255,255,0.1)', timeVisible: true }
+      });
+      volumeSeries = volumeChart.addHistogramSeries({
+        priceFormat: { type: 'volume' },
+        priceScaleId: ''
+      });
+
+      // Sync time scales
+      mainChart.timeScale().subscribeVisibleLogicalRangeChange(function(range) {
+        volumeChart.timeScale().setVisibleLogicalRange(range);
+      });
+      volumeChart.timeScale().subscribeVisibleLogicalRangeChange(function(range) {
+        mainChart.timeScale().setVisibleLogicalRange(range);
+      });
+
+      // Crosshair move → update OHLCV panel
+      mainChart.subscribeCrosshairMove(function(param) {
+        if (!param || !param.time || !candleSeries) return;
+        var data = param.seriesData.get(candleSeries);
+        if (data) updateOhlcv(data);
+      });
+
+      loadChart(currentSymbol, currentDays);
+    }
+
+    function changeSymbol(sym) {
+      currentSymbol = sym;
+      loadChart(sym, currentDays);
+    }
+
+    function setTimeframe(btn) {
+      document.querySelectorAll('.tf-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      currentDays = parseInt(btn.dataset.days, 10);
+      loadChart(currentSymbol, currentDays);
+    }
+
+    async function loadChart(symbol, days) {
+      try {
+        var resp = await fetch('/api/chart/' + encodeURIComponent(symbol) + '?days=' + days);
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        var data = await resp.json();
+        renderChart(data);
+      } catch (e) {
+        console.error('Chart load failed:', e);
+      }
+    }
+
+    function toUnixTime(ts) {
+      if (!ts) return 0;
+      // lightweight-charts requires UTC seconds for day bars, or full timestamp for intraday
+      return Math.floor(new Date(ts).getTime() / 1000);
+    }
+
+    function renderChart(data) {
+      latestBars = data.bars || [];
+      if (latestBars.length === 0) return;
+
+      var candles = latestBars.map(function(b) {
+        return {
+          time: toUnixTime(b.timestamp),
+          open: parseFloat(b.open),
+          high: parseFloat(b.high),
+          low: parseFloat(b.low),
+          close: parseFloat(b.close)
+        };
+      });
+
+      var volumes = latestBars.map(function(b) {
+        var isUp = parseFloat(b.close) >= parseFloat(b.open);
+        return {
+          time: toUnixTime(b.timestamp),
+          value: b.volume,
+          color: isUp ? 'rgba(0,212,170,0.5)' : 'rgba(255,77,109,0.5)'
+        };
+      });
+
+      candleSeries.setData(candles);
+      volumeSeries.setData(volumes);
+      mainChart.timeScale().fitContent();
+      volumeChart.timeScale().fitContent();
+
+      // Price display
+      var cp = parseFloat(data.currentPrice);
+      var ch = parseFloat(data.priceChange);
+      var pct = parseFloat(data.priceChangePct);
+      updatePriceDisplay(cp, ch, pct);
+
+      // OHLCV defaults to latest bar
+      var last = latestBars[latestBars.length - 1];
+      updateOhlcv(last);
+
+      // 52-week stats
+      document.getElementById('stat52Hi').textContent = '$' + parseFloat(data.high52Week).toFixed(2);
+      document.getElementById('stat52Lo').textContent = '$' + parseFloat(data.low52Week).toFixed(2);
+
+      var totalVol = latestBars.reduce(function(s, b) { return s + (b.volume || 0); }, 0);
+      var avgVol = latestBars.length > 0 ? Math.round(totalVol / latestBars.length) : 0;
+      document.getElementById('statAvgVol').textContent = fmtVol(avgVol);
+
+      lastPrice = cp;
+    }
+
+    function updatePriceDisplay(price, change, pct) {
+      var priceEl = document.getElementById('currentPrice');
+      var isUp = change >= 0;
+      var arrow = isUp ? '▲' : '▼';
+      var sign = isUp ? '+' : '';
+
+      // Flash animation
+      if (lastPrice !== null) {
+        priceEl.classList.remove('price-flash-up', 'price-flash-dn');
+        void priceEl.offsetWidth; // reflow
+        priceEl.classList.add(isUp ? 'price-flash-up' : 'price-flash-dn');
+      }
+
+      priceEl.textContent = '$' + price.toFixed(2);
+      var chEl = document.getElementById('priceChange');
+      chEl.textContent = arrow + ' ' + sign + change.toFixed(2) + ' (' + sign + pct.toFixed(2) + '%)';
+      chEl.className = 'chart-price-change ' + (isUp ? 'up' : 'dn');
+      document.getElementById('lastUpdated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    }
+
+    function updateOhlcv(bar) {
+      document.getElementById('ohlcO').textContent = '$' + parseFloat(bar.open || 0).toFixed(2);
+      document.getElementById('ohlcH').textContent = '$' + parseFloat(bar.high || 0).toFixed(2);
+      document.getElementById('ohlcL').textContent = '$' + parseFloat(bar.low || 0).toFixed(2);
+      document.getElementById('ohlcC').textContent = '$' + parseFloat(bar.close || 0).toFixed(2);
+      document.getElementById('ohlcV').textContent = fmtVol(bar.volume || 0);
+    }
+
+    function fmtVol(v) {
+      if (v >= 1_000_000) return (v / 1_000_000).toFixed(2) + 'M';
+      if (v >= 1_000) return (v / 1_000).toFixed(1) + 'K';
+      return v.toString();
+    }
+
+    // Real-time price polling every 15 seconds
+    function startPricePolling() {
+      setInterval(async function() {
+        try {
+          var resp = await fetch('/api/market/price/' + encodeURIComponent(currentSymbol));
+          if (!resp.ok) return;
+          var data = await resp.json();
+          var newPrice = parseFloat(data.price);
+          if (isNaN(newPrice)) return;
+
+          var change = lastPrice !== null ? newPrice - lastPrice : 0;
+          var pct = lastPrice !== null && lastPrice !== 0 ? (change / lastPrice) * 100 : 0;
+          updatePriceDisplay(newPrice, change, pct);
+
+          // If viewing 1D, update the last candle
+          if (currentDays <= 1 && candleSeries && latestBars.length > 0) {
+            var last = latestBars[latestBars.length - 1];
+            candleSeries.update({
+              time: toUnixTime(last.timestamp),
+              open: parseFloat(last.open),
+              high: Math.max(parseFloat(last.high), newPrice),
+              low: Math.min(parseFloat(last.low), newPrice),
+              close: newPrice
+            });
+          }
+
+          lastPrice = newPrice;
+        } catch (e) { /* silently ignore */ }
+      }, 15000);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      initCharts();
+      startPricePolling();
+
+      // Sync chart sizes on window resize
+      window.addEventListener('resize', function() {
+        if (mainChart) mainChart.applyOptions({ width: document.getElementById('mainChart').clientWidth });
+        if (volumeChart) volumeChart.applyOptions({ width: document.getElementById('volumeChart').clientWidth });
+      });
+    });
+  </script>
+
+</body>
+</html>

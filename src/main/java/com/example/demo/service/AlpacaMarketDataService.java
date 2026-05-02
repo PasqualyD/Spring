@@ -92,6 +92,46 @@ public class AlpacaMarketDataService {
     }
 
     @SuppressWarnings("unchecked")
+    public List<BarDTO> getIntradayBars(String symbol, int days) {
+        try {
+            int limit = days * 7;
+            Map<String, Object> response = dataClient.get()
+                    .uri(u -> u.path("/v2/stocks/{symbol}/bars")
+                               .queryParam("timeframe", "1Hour")
+                               .queryParam("limit", limit)
+                               .build(symbol))
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .timeout(java.time.Duration.ofSeconds(5))
+                    .onErrorReturn(Collections.emptyMap())
+                    .block();
+
+            if (response == null || response.isEmpty()) return Collections.emptyList();
+            List<Map<String, Object>> bars = (List<Map<String, Object>>) response.get("bars");
+            if (bars == null) return Collections.emptyList();
+
+            List<BarDTO> result = new ArrayList<>();
+            for (Map<String, Object> bar : bars) {
+                try {
+                    String t = (String) bar.get("t");
+                    BigDecimal o = toBd(bar.get("o"));
+                    BigDecimal h = toBd(bar.get("h"));
+                    BigDecimal l = toBd(bar.get("l"));
+                    BigDecimal c = toBd(bar.get("c"));
+                    long v = bar.get("v") instanceof Number n ? n.longValue() : 0L;
+                    result.add(new BarDTO(t, o, h, l, c, v));
+                } catch (Exception e) {
+                    log.warn("Failed to parse intraday bar for {}: {}", symbol, e.getMessage());
+                }
+            }
+            return result;
+        } catch (Exception e) {
+            log.warn("getIntradayBars({}) failed: {}", symbol, e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
     public List<BarDTO> getDailyBars(String symbol, int days) {
         try {
             Map<String, Object> response = dataClient.get()

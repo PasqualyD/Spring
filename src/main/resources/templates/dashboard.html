@@ -81,7 +81,7 @@
               </thead>
               <tbody>
                 <tr th:each="pos : ${positions}">
-                  <td style="font-weight:600;" th:text="${pos.symbol}">AAPL</td>
+                  <td style="font-weight:600;"><a th:href="@{/chart/{s}(s=${pos.symbol})}" style="color:#a78bfa;text-decoration:none;" th:text="${pos.symbol}">AAPL</a></td>
                   <td th:text="${#numbers.formatDecimal(pos.quantity, 1, 'COMMA', 2, 'POINT')}">10.00</td>
                   <td th:text="${'$' + #numbers.formatDecimal(pos.currentPrice, 1, 'COMMA', 2, 'POINT')}">$189.42</td>
                   <td th:text="${'$' + #numbers.formatDecimal(pos.marketValue, 1, 'COMMA', 2, 'POINT')}">$1,894.20</td>
@@ -146,7 +146,7 @@
           <div class="card-title" style="margin-bottom:12px;">Market Snapshot</div>
           <th:block th:if="${marketPrices != null}" th:each="sym : ${snapSymbols}">
             <div class="market-row" th:if="${marketPrices[sym] != null}">
-              <span class="market-symbol" th:text="${sym}">AAPL</span>
+              <a th:href="@{/chart/{s}(s=${sym})}" class="market-symbol" style="text-decoration:none;color:inherit;" th:text="${sym}">AAPL</a>
               <span class="market-price mono"
                     th:text="${'$' + #numbers.formatDecimal(marketPrices[sym], 1, 'COMMA', 2, 'POINT')}">$0.00</span>
               <span class="market-change up">LIVE</span>

@@ -6,7 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DiyanniMoney — Watchlist</title>
   <link rel="stylesheet" th:href="@{/css/styles.css}" />
+  <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
   <style>
+    .mini-chart { width:80px; height:40px; display:inline-block; vertical-align:middle; }
     .two-col { display:grid; grid-template-columns:60% 40%; gap:24px; }
     @media(max-width:900px){ .two-col{ grid-template-columns:1fr; } }
 
@@ -104,13 +106,14 @@
                   <th>Current</th>
                   <th>Change</th>
                   <th>Change %</th>
+                  <th>7D</th>
                   <th>Owned</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 <tr th:each="item : ${watchlistItems}">
-                  <td style="font-weight:700;" th:text="${item.symbol}">AAPL</td>
+                  <td style="font-weight:700;"><a th:href="@{/chart/{s}(s=${item.symbol})}" style="color:#a78bfa;text-decoration:none;" th:text="${item.symbol}">AAPL</a></td>
                   <td class="mono"
                       th:text="${'$' + #numbers.formatDecimal(item.priceAtAdd, 1, 'COMMA', 2, 'POINT')}">$100.00</td>
                   <td class="mono"
@@ -122,10 +125,15 @@
                       th:class="${pct >= 0 ? 'mono chg-pos' : 'mono chg-neg'}"
                       th:text="${(pct >= 0 ? '+' : '') + #numbers.formatDecimal(pct, 1, 'COMMA', 2, 'POINT') + '%'}">+5.00%</td>
                   <td>
+                    <div th:id="'mini-chart-' + ${item.symbol}" class="mini-chart"></div>
+                  </td>
+                  <td>
                     <span th:if="${item.owned}" class="badge-owned">&#10003; Owned</span>
                     <span th:unless="${item.owned}" style="color:var(--text-muted,#8a95a3);font-size:0.8rem;">—</span>
                   </td>
                   <td style="white-space:nowrap;">
+                    <a th:href="@{/chart/{s}(s=${item.symbol})}"
+                       class="btn btn-primary btn-sm" style="margin-right:4px;">Chart</a>
                     <a th:href="@{/portfolio(symbol=${item.symbol})}"
                        class="btn btn-primary btn-sm" style="margin-right:6px;">Trade</a>
                     <form th:action="@{/watchlist/remove}" method="post" style="display:inline;">
@@ -241,5 +249,52 @@
     </div>
   </main>
 
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var containers = document.querySelectorAll('[id^="mini-chart-"]');
+      if (!containers.length || typeof LightweightCharts === 'undefined') return;
+
+      var symbols = Array.from(containers).map(function(el) {
+        return el.id.replace('mini-chart-', '');
+      });
+
+      Promise.all(symbols.map(function(sym) {
+        return fetch('/api/chart/' + encodeURIComponent(sym) + '?days=7')
+          .then(function(r) { return r.ok ? r.json() : null; })
+          .catch(function() { return null; });
+      })).then(function(results) {
+        results.forEach(function(data, i) {
+          if (!data || !data.bars || data.bars.length === 0) return;
+          var sym = symbols[i];
+          var el = document.getElementById('mini-chart-' + sym);
+          if (!el) return;
+
+          var bars = data.bars;
+          var first = parseFloat(bars[0].close);
+          var last  = parseFloat(bars[bars.length - 1].close);
+          var isUp  = last >= first;
+          var color = isUp ? '#00d4aa' : '#ff4d6d';
+
+          var chart = LightweightCharts.createChart(el, {
+            width: 80, height: 40,
+            layout: { background: { type: 'solid', color: 'transparent' }, textColor: 'transparent' },
+            grid: { vertLines: { visible: false }, horzLines: { visible: false } },
+            crosshair: { mode: LightweightCharts.CrosshairMode.Hidden },
+            rightPriceScale: { visible: false },
+            leftPriceScale:  { visible: false },
+            timeScale: { visible: false },
+            handleScroll: false,
+            handleScale: false
+          });
+
+          var line = chart.addLineSeries({ color: color, lineWidth: 1.5, priceLineVisible: false });
+          line.setData(bars.map(function(b) {
+            return { time: Math.floor(new Date(b.timestamp).getTime() / 1000), value: parseFloat(b.close) };
+          }));
+          chart.timeScale().fitContent();
+        });
+      });
+    });
+  </script>
 </body>
 </html>
