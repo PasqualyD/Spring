@@ -2,6 +2,7 @@ package com.example.demo.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -10,6 +11,7 @@ import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Component
+@ConditionalOnProperty(name = "market.data.mode", havingValue = "simulated", matchIfMissing = true)
 public class PriceSimulationService {
 
     private static final Logger log = LoggerFactory.getLogger(PriceSimulationService.class);

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DiyanniMoney — Settings</title>
+  <link rel="stylesheet" th:href="@{/css/styles.css}" />
+  <style>
+    .settings-grid { display:grid; gap:24px; max-width:680px; }
+    .flash-success { background:rgba(0,212,170,.15); border:1px solid #00d4aa; color:#00d4aa; padding:12px 16px; border-radius:8px; margin-bottom:20px; }
+    .flash-error   { background:rgba(255,77,109,.15); border:1px solid #ff4d6d; color:#ff4d6d; padding:12px 16px; border-radius:8px; margin-bottom:20px; }
+    .form-group { margin-bottom:16px; }
+    .form-group label { display:block; font-size:0.8rem; color:var(--text-muted,#8a95a3); margin-bottom:6px; }
+    .form-group input { width:100%; padding:10px 12px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:8px; color:#fff; font-size:0.9rem; box-sizing:border-box; }
+    .form-group input:disabled { opacity:.5; cursor:not-allowed; }
+    .section-title { font-size:1rem; font-weight:600; margin-bottom:16px; }
+    .badge-live { background:rgba(0,212,170,.2); color:#00d4aa; border:1px solid #00d4aa; padding:3px 10px; border-radius:4px; font-size:0.75rem; font-weight:700; }
+    .badge-sim  { background:rgba(139,92,246,.15); color:#a78bfa; border:1px solid rgba(139,92,246,.4); padding:3px 10px; border-radius:4px; font-size:0.75rem; font-weight:700; }
+    .info-box { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:14px 16px; font-size:0.85rem; color:var(--text-muted,#8a95a3); line-height:1.6; }
+    .danger-zone { border:1px solid rgba(255,77,109,.3); border-radius:12px; padding:20px 24px; }
+    .danger-title { color:#ff4d6d; font-size:1rem; font-weight:600; margin-bottom:8px; }
+    .danger-desc { font-size:0.85rem; color:var(--text-muted,#8a95a3); margin-bottom:16px; }
+    .btn-danger { background:rgba(255,77,109,.15); border:1px solid #ff4d6d; color:#ff4d6d; padding:10px 20px; border-radius:8px; font-weight:600; cursor:pointer; font-size:0.9rem; }
+    .btn-danger:hover { background:rgba(255,77,109,.25); }
+    .alpaca-stat { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05); font-size:0.875rem; }
+    .alpaca-stat:last-child { border-bottom:none; }
+    .alpaca-stat-label { color:var(--text-muted,#8a95a3); }
+    .alpaca-stat-value { font-family:monospace; color:#fff; font-weight:600; }
+  </style>
+</head>
+<body>
+
+  <div th:replace="~{fragments/header :: header}"></div>
+
+  <main class="page-content" sec:authorize="isAuthenticated()">
+
+    <div class="welcome-banner">
+      <h1>Settings</h1>
+      <p>Manage your account and trading preferences.</p>
+    </div>
+
+    <div th:if="${successMessage}" class="flash-success" th:text="${successMessage}"></div>
+    <div th:if="${errorMessage}"   class="flash-error"   th:text="${errorMessage}"></div>
+
+    <div class="settings-grid">
+
+      <!-- ── Account Settings ── -->
+      <div class="card">
+        <div class="section-title">Account Settings</div>
+
+        <div class="form-group">
+          <label>Username / Email</label>
+          <input type="text" th:value="${user.username}" disabled />
+        </div>
+
+        <div style="border-top:1px solid rgba(255,255,255,0.07);padding-top:18px;margin-top:4px;">
+          <div style="font-size:0.85rem;font-weight:600;margin-bottom:14px;">Change Password</div>
+          <form th:action="@{/settings/password}" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+            <div class="form-group">
+              <label for="currentPwd">Current Password</label>
+              <input type="password" id="currentPwd" name="currentPassword" placeholder="••••••••" required />
+            </div>
+            <div class="form-group">
+              <label for="newPwd">New Password</label>
+              <input type="password" id="newPwd" name="newPassword" placeholder="••••••••" required minlength="6" />
+            </div>
+            <div class="form-group">
+              <label for="confirmPwd">Confirm New Password</label>
+              <input type="password" id="confirmPwd" name="confirmPassword" placeholder="••••••••" required />
+            </div>
+            <button type="submit" class="btn btn-primary" style="padding:10px 24px;">Update Password</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- ── Trading Mode ── -->
+      <div class="card">
+        <div class="section-title">Trading Mode</div>
+
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+          <span style="font-size:0.9rem;color:var(--text-muted,#8a95a3);">Current mode:</span>
+          <span th:if="${isLiveMode}"  class="badge-live">Live (Alpaca)</span>
+          <span th:unless="${isLiveMode}" class="badge-sim">Simulated</span>
+        </div>
+
+        <!-- Simulated mode info -->
+        <div th:unless="${isLiveMode}" class="info-box">
+          Running in <strong style="color:#fff;">simulated mode</strong> — prices update randomly every 5 seconds
+          and trades execute against the internal portfolio only.<br><br>
+          To connect real Alpaca paper trading, sign up at
+          <strong style="color:#a78bfa;">alpaca.markets</strong>, create a Paper Trading API key,
+          then set these environment variables on Railway:<br>
+          <code style="color:#00d4aa;">ALPACA_API_KEY</code>,
+          <code style="color:#00d4aa;">ALPACA_API_SECRET</code>,
+          <code style="color:#00d4aa;">MARKET_DATA_MODE=live</code>
+        </div>
+
+        <!-- Live mode info -->
+        <div th:if="${isLiveMode}">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+            <span class="badge-live">Connected</span>
+            <span th:if="${alpacaAccount != null}"
+                  style="font-size:0.85rem;color:var(--text-muted,#8a95a3);"
+                  th:text="${alpacaAccount.accountStatus}">ACTIVE</span>
+          </div>
+          <div th:if="${alpacaAccount != null}">
+            <div class="alpaca-stat">
+              <span class="alpaca-stat-label">Buying Power</span>
+              <span class="alpaca-stat-value"
+                    th:text="${'$' + #numbers.formatDecimal(alpacaAccount.buyingPower, 1, 'COMMA', 2, 'POINT')}">—</span>
+            </div>
+            <div class="alpaca-stat">
+              <span class="alpaca-stat-label">Alpaca Portfolio Value</span>
+              <span class="alpaca-stat-value"
+                    th:text="${'$' + #numbers.formatDecimal(alpacaAccount.portfolioValue, 1, 'COMMA', 2, 'POINT')}">—</span>
+            </div>
+            <div class="alpaca-stat">
+              <span class="alpaca-stat-label">Equity</span>
+              <span class="alpaca-stat-value"
+                    th:text="${'$' + #numbers.formatDecimal(alpacaAccount.equity, 1, 'COMMA', 2, 'POINT')}">—</span>
+            </div>
+            <div class="alpaca-stat">
+              <span class="alpaca-stat-label">Cash</span>
+              <span class="alpaca-stat-value"
+                    th:text="${'$' + #numbers.formatDecimal(alpacaAccount.cash, 1, 'COMMA', 2, 'POINT')}">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Danger Zone ── -->
+      <div class="danger-zone">
+        <div class="danger-title">Danger Zone</div>
+        <p class="danger-desc">
+          Reset your portfolio to $100,000 cash. All positions and trade history will be permanently deleted.
+          This cannot be undone.
+        </p>
+        <form th:action="@{/settings/reset-portfolio}" method="post"
+              onsubmit="return document.getElementById('resetConfirm').value === 'RESET'
+                        || (alert('Type RESET to confirm'), false)">
+          <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+          <div class="form-group">
+            <label for="resetConfirm">Type <strong style="color:#ff4d6d;">RESET</strong> to confirm</label>
+            <input type="text" id="resetConfirm" name="confirmation" placeholder="RESET"
+                   style="border-color:rgba(255,77,109,.4);" autocomplete="off" />
+          </div>
+          <button type="submit" class="btn-danger">Reset Portfolio</button>
+        </form>
+      </div>
+
+    </div>
+  </main>
+
+</body>
+</html>

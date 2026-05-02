@@ -219,6 +219,35 @@
         </div>
       </div>
 
+      <!-- ── PRICE HISTORY CHART ── -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h3 style="font-size:1rem;font-weight:600;margin:0;">Price History</h3>
+          <select id="chartSymbolSelect" onchange="loadChart(this.value)"
+                  style="padding:6px 10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-size:0.85rem;">
+            <option th:each="sym : ${allSymbols}" th:value="${sym}" th:text="${sym}">AAPL</option>
+          </select>
+        </div>
+
+        <div id="chartContainer" style="position:relative;">
+          <svg id="priceChart" viewBox="0 0 630 200" style="width:100%;height:180px;display:block;">
+            <text id="chartMaxLabel" x="2" y="18" fill="#8a95a3" font-size="10">—</text>
+            <text id="chartMinLabel" x="2" y="178" fill="#8a95a3" font-size="10">—</text>
+            <text id="chartDateStart" x="62" y="198" fill="#8a95a3" font-size="10">—</text>
+            <text id="chartDateEnd"   x="580" y="198" fill="#8a95a3" font-size="10" text-anchor="end">—</text>
+            <polyline id="chartPolyline" points="" fill="none" stroke="#00d4aa" stroke-width="1.8" stroke-linejoin="round"/>
+          </svg>
+          <div id="chartLoading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#8a95a3;font-size:0.85rem;">Loading…</div>
+        </div>
+
+        <div id="chartOhlc" style="display:none;margin-top:12px;display:flex;gap:20px;font-size:0.78rem;color:#8a95a3;">
+          <span>O: <span id="chartO" style="color:#fff;font-family:monospace;">—</span></span>
+          <span>H: <span id="chartH" style="color:#00d4aa;font-family:monospace;">—</span></span>
+          <span>L: <span id="chartL" style="color:#ff4d6d;font-family:monospace;">—</span></span>
+          <span>C: <span id="chartC" style="color:#fff;font-family:monospace;">—</span></span>
+        </div>
+      </div>
+
       <!-- ── TRADING STATISTICS ── -->
       <div class="card">
         <h3 style="font-size:1rem;font-weight:600;margin-bottom:16px;">Trading Statistics</h3>
@@ -271,8 +300,74 @@
       document.getElementById('estimatedCost').textContent = '$' + est;
     }
 
-    document.addEventListener('DOMContentLoaded', updateEstimate);
+    document.addEventListener('DOMContentLoaded', function() {
+      updateEstimate();
+      var firstSym = document.getElementById('chartSymbolSelect');
+      if (firstSym) loadChart(firstSym.value);
+    });
     /*]]>*/
+  </script>
+
+  <script>
+    var CHART_PAD_L = 62, CHART_PAD_B = 22, CHART_PAD_T = 10, CHART_W = 630, CHART_H = 200;
+
+    async function loadChart(symbol) {
+      var loading = document.getElementById('chartLoading');
+      if (loading) loading.style.display = 'flex';
+      try {
+        var resp = await fetch('/api/chart/' + encodeURIComponent(symbol) + '?days=30');
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        var data = await resp.json();
+        renderChart(data);
+      } catch (e) {
+        if (loading) loading.textContent = 'Chart unavailable';
+      }
+    }
+
+    function renderChart(data) {
+      var loading = document.getElementById('chartLoading');
+      if (loading) loading.style.display = 'none';
+      var bars = data.bars;
+      if (!bars || bars.length === 0) return;
+
+      var prices = bars.map(function(b) { return parseFloat(b.close); });
+      var minP = Math.min.apply(null, prices);
+      var maxP = Math.max.apply(null, prices);
+      var range = maxP - minP || 1;
+
+      var plotW = CHART_W - CHART_PAD_L - 10;
+      var plotH = CHART_H - CHART_PAD_T - CHART_PAD_B;
+
+      var points = bars.map(function(b, i) {
+        var x = CHART_PAD_L + (bars.length === 1 ? plotW / 2 : (i / (bars.length - 1)) * plotW);
+        var y = CHART_PAD_T + (1 - (parseFloat(b.close) - minP) / range) * plotH;
+        return x.toFixed(1) + ',' + y.toFixed(1);
+      }).join(' ');
+
+      var isUp = prices[prices.length - 1] >= prices[0];
+      var color = isUp ? '#00d4aa' : '#ff4d6d';
+
+      document.getElementById('chartPolyline').setAttribute('points', points);
+      document.getElementById('chartPolyline').setAttribute('stroke', color);
+      document.getElementById('chartMaxLabel').textContent = '$' + maxP.toFixed(2);
+      document.getElementById('chartMinLabel').textContent = '$' + minP.toFixed(2);
+
+      function fmtDate(ts) {
+        if (!ts) return '';
+        var d = new Date(ts);
+        return (d.getMonth()+1) + '/' + d.getDate();
+      }
+      document.getElementById('chartDateStart').textContent = fmtDate(bars[0].timestamp);
+      document.getElementById('chartDateEnd').textContent   = fmtDate(bars[bars.length-1].timestamp);
+
+      var last = bars[bars.length - 1];
+      document.getElementById('chartO').textContent = '$' + parseFloat(last.open).toFixed(2);
+      document.getElementById('chartH').textContent = '$' + parseFloat(last.high).toFixed(2);
+      document.getElementById('chartL').textContent = '$' + parseFloat(last.low).toFixed(2);
+      document.getElementById('chartC').textContent = '$' + parseFloat(last.close).toFixed(2);
+      var ohlc = document.getElementById('chartOhlc');
+      if (ohlc) ohlc.style.display = 'flex';
+    }
   </script>
 
 </body>

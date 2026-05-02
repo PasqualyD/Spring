@@ -1,5 +1,6 @@
 package com.example.demo.service;
 
+import com.example.demo.dto.AlpacaOrderResult;
 import com.example.demo.dto.TradingMetrics;
 import com.example.demo.model.Portfolio;
 import com.example.demo.model.Position;
@@ -8,6 +9,7 @@ import com.example.demo.model.User;
 import com.example.demo.repository.PortfolioRepository;
 import com.example.demo.repository.PositionRepository;
 import com.example.demo.repository.TradeRecordRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +31,9 @@ public class PortfolioService {
     private final PositionRepository positionRepository;
     private final TradeRecordRepository tradeRecordRepository;
     private final MarketDataService marketDataService;
+
+    @Autowired(required = false)
+    private AlpacaTradeService alpacaTradeService;
 
     public PortfolioService(PortfolioRepository portfolioRepository,
                             PositionRepository positionRepository,
@@ -56,7 +61,7 @@ public class PortfolioService {
         Optional<Double> priceOpt = marketDataService.getPrice(upperSymbol);
         if (priceOpt.isEmpty()) {
             TradeRecord record = buildRecord(portfolio, upperSymbol, upperSide, quantity,
-                    BigDecimal.ZERO, "REJECTED", "Symbol not found: " + upperSymbol);
+                    BigDecimal.ZERO, "REJECTED", "Symbol not found: " + upperSymbol, null);
             tradeRecordRepository.save(record);
             return new TradeResult(false, "Symbol not found: " + upperSymbol, record);
         }
@@ -67,9 +72,26 @@ public class PortfolioService {
         if ("BUY".equals(upperSide)) {
             if (portfolio.getCashBalance().compareTo(totalValue) < 0) {
                 TradeRecord record = buildRecord(portfolio, upperSymbol, upperSide, quantity,
-                        price, "REJECTED", "Insufficient funds");
+                        price, "REJECTED", "Insufficient funds", null);
                 tradeRecordRepository.save(record);
                 return new TradeResult(false, "Insufficient funds", record);
+            }
+
+            // Submit to Alpaca if in live mode; update execution price from fill
+            String alpacaOrderId = null;
+            if (alpacaTradeService != null) {
+                AlpacaOrderResult alpacaResult = alpacaTradeService.submitMarketOrder(upperSymbol, upperSide, quantity);
+                if (alpacaResult.getErrorMessage() != null) {
+                    TradeRecord record = buildRecord(portfolio, upperSymbol, upperSide, quantity,
+                            price, "REJECTED", "Alpaca: " + alpacaResult.getErrorMessage(), null);
+                    tradeRecordRepository.save(record);
+                    return new TradeResult(false, "Order rejected: " + alpacaResult.getErrorMessage(), record);
+                }
+                alpacaOrderId = alpacaResult.getAlpacaOrderId();
+                if (alpacaResult.getFilledAvgPrice() != null) {
+                    price = alpacaResult.getFilledAvgPrice();
+                    totalValue = quantity.multiply(price).setScale(2, RoundingMode.HALF_UP);
+                }
             }
 
             portfolio.setCashBalance(portfolio.getCashBalance().subtract(totalValue));
@@ -92,14 +114,18 @@ public class PortfolioService {
                 pos.setAverageCostBasis(price);
                 positionRepository.save(pos);
             }
-
             portfolioRepository.save(portfolio);
+            TradeRecord record = buildRecord(portfolio, upperSymbol, upperSide, quantity, price, "FILLED", null, alpacaOrderId);
+            tradeRecordRepository.save(record);
+            return new TradeResult(true,
+                    upperSide + " " + quantity.stripTrailingZeros().toPlainString() + " " + upperSymbol + " @ $" + price.setScale(2, RoundingMode.HALF_UP),
+                    record);
 
         } else if ("SELL".equals(upperSide)) {
             Optional<Position> existingOpt = positionRepository.findByPortfolioAndSymbol(portfolio, upperSymbol);
             if (existingOpt.isEmpty()) {
                 TradeRecord record = buildRecord(portfolio, upperSymbol, upperSide, quantity,
-                        price, "REJECTED", "Position not found");
+                        price, "REJECTED", "Position not found", null);
                 tradeRecordRepository.save(record);
                 return new TradeResult(false, "No open position for " + upperSymbol, record);
             }
@@ -107,9 +133,26 @@ public class PortfolioService {
             Position pos = existingOpt.get();
             if (pos.getQuantity().compareTo(quantity) < 0) {
                 TradeRecord record = buildRecord(portfolio, upperSymbol, upperSide, quantity,
-                        price, "REJECTED", "Insufficient shares");
+                        price, "REJECTED", "Insufficient shares", null);
                 tradeRecordRepository.save(record);
                 return new TradeResult(false, "Insufficient shares", record);
+            }
+
+            // Submit to Alpaca if in live mode
+            String alpacaOrderId = null;
+            if (alpacaTradeService != null) {
+                AlpacaOrderResult alpacaResult = alpacaTradeService.submitMarketOrder(upperSymbol, upperSide, quantity);
+                if (alpacaResult.getErrorMessage() != null) {
+                    TradeRecord record = buildRecord(portfolio, upperSymbol, upperSide, quantity,
+                            price, "REJECTED", "Alpaca: " + alpacaResult.getErrorMessage(), null);
+                    tradeRecordRepository.save(record);
+                    return new TradeResult(false, "Order rejected: " + alpacaResult.getErrorMessage(), record);
+                }
+                alpacaOrderId = alpacaResult.getAlpacaOrderId();
+                if (alpacaResult.getFilledAvgPrice() != null) {
+                    price = alpacaResult.getFilledAvgPrice();
+                    totalValue = quantity.multiply(price).setScale(2, RoundingMode.HALF_UP);
+                }
             }
 
             BigDecimal remaining = pos.getQuantity().subtract(quantity);
@@ -119,22 +162,20 @@ public class PortfolioService {
                 pos.setQuantity(remaining);
                 positionRepository.save(pos);
             }
-
             portfolio.setCashBalance(portfolio.getCashBalance().add(totalValue));
             portfolioRepository.save(portfolio);
+            TradeRecord record = buildRecord(portfolio, upperSymbol, upperSide, quantity, price, "FILLED", null, alpacaOrderId);
+            tradeRecordRepository.save(record);
+            return new TradeResult(true,
+                    upperSide + " " + quantity.stripTrailingZeros().toPlainString() + " " + upperSymbol + " @ $" + price.setScale(2, RoundingMode.HALF_UP),
+                    record);
 
         } else {
             TradeRecord record = buildRecord(portfolio, upperSymbol, upperSide, quantity,
-                    price, "REJECTED", "Invalid side: " + side);
+                    price, "REJECTED", "Invalid side: " + side, null);
             tradeRecordRepository.save(record);
             return new TradeResult(false, "Invalid side: " + side, record);
         }
-
-        TradeRecord record = buildRecord(portfolio, upperSymbol, upperSide, quantity, price, "FILLED", null);
-        tradeRecordRepository.save(record);
-        return new TradeResult(true,
-                upperSide + " " + quantity.stripTrailingZeros().toPlainString() + " " + upperSymbol + " @ $" + price.setScale(2, RoundingMode.HALF_UP),
-                record);
     }
 
     public List<PositionWithValue> getPositionsWithValue(User user) {
@@ -260,7 +301,8 @@ public class PortfolioService {
     }
 
     private TradeRecord buildRecord(Portfolio portfolio, String symbol, String side,
-                                    BigDecimal quantity, BigDecimal price, String status, String rejectionReason) {
+                                    BigDecimal quantity, BigDecimal price, String status,
+                                    String rejectionReason, String alpacaOrderId) {
         TradeRecord r = new TradeRecord();
         r.setPortfolio(portfolio);
         r.setSymbol(symbol);
@@ -270,6 +312,7 @@ public class PortfolioService {
         r.setTotalValue(quantity.multiply(price).setScale(2, RoundingMode.HALF_UP));
         r.setStatus(status);
         r.setRejectionReason(rejectionReason);
+        r.setAlpacaOrderId(alpacaOrderId);
         return r;
     }
 

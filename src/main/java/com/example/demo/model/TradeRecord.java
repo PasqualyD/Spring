@@ -36,6 +36,8 @@ public class TradeRecord {
 
     private String rejectionReason;
 
+    private String alpacaOrderId;
+
     @Column(nullable = false)
     private LocalDateTime executedAt;
 
@@ -70,6 +72,9 @@ public class TradeRecord {
 
     public String getRejectionReason() { return rejectionReason; }
     public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
+
+    public String getAlpacaOrderId() { return alpacaOrderId; }
+    public void setAlpacaOrderId(String alpacaOrderId) { this.alpacaOrderId = alpacaOrderId; }
 
     public LocalDateTime getExecutedAt() { return executedAt; }
 }
